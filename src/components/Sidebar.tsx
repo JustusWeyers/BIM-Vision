@@ -1,7 +1,11 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Element, Issue, AIRecommendation } from '../types';
 import { IconAlert, IconBrain, IconCheck, IconDatabase, IconMessage, IconSend, IconTool } from '../Icons';
-
+import { buiGridContainerRef } from './IFCViewer';
+import { useProperties } from '../utils/PropertiesContext';
+import * as BUI from "@thatopen/ui";
+import * as BUIC from "@thatopen/ui-obc";
+import { fileInputRef } from './IFCViewer';
 interface SidebarProps {
   selectedId: string | null;
   elements: Element[];
@@ -30,6 +34,63 @@ const Sidebar: React.FC<SidebarProps> = ({
   onFixElement
 }) => {
   const selectedElement = selectedId ? elements.find((e) => e.id === selectedId) : null;
+
+  const { properties, components, viewport: viewportRef, update } = useProperties();
+
+  useEffect(() =>
+    update.current = () => {
+      console.log("update ref", !!properties.current, !!components.current, !!viewportRef.current);
+      const propertiesPanel = BUI.Component.create(() => {
+        console.log("Creating properties panel...");
+        if (!properties.current) return BUI.html`<div>Click a model to view properties</div>`;
+        const [loadFragBtn] = BUIC.buttons.loadFrag({ components: components.current });
+
+        const onTextInput = (e: Event) => {
+          const input = e.target as BUI.TextInput;
+          properties.current.queryString = input.value !== "" ? input.value : null;
+        };
+
+        const expandTable = (e: Event) => {
+          const button = e.target as BUI.Button;
+          properties.current.expanded = !properties.current.expanded;
+          button.label = properties.current.expanded ? "Collapse" : "Expand";
+        };
+
+        const copyAsTSV = async () => {
+          await navigator.clipboard.writeText(properties.current.tsv);
+        };
+
+        return BUI.html`
+      <bim-panel label="Properties">
+        <bim-panel-section label="Element Data">
+          <div style="display: flex; gap: 0.5rem;">
+            <bim-button @click=${expandTable} label=${properties.current.expanded ? "Collapse" : "Expand"}></bim-button> 
+          </div> 
+          <bim-text-input @input=${onTextInput} placeholder="Search Property" debounce="250"></bim-text-input>
+          ${properties.current}
+        </bim-panel-section>
+      </bim-panel>
+    `;
+      });
+
+      const app = document.createElement("bim-grid") as BUI.Grid<["main"]>;
+      app.layouts = {
+        main: {
+          template: `
+      "propertiesPanel viewport"
+      /25rem 1fr
+      `,
+          elements: { propertiesPanel, viewport: viewportRef.current },
+        },
+      };
+
+      const propertiesContainer = document.getElementById("properties-container")
+
+      propertiesContainer.innerHTML = "";
+
+      app.layout = "main";
+      propertiesContainer.append(app);
+    })
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -68,18 +129,9 @@ const Sidebar: React.FC<SidebarProps> = ({
           )}
         </div>
 
-        <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #f3f4f6' }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: '#1f2937', marginBottom: 6 }}>Properties</div>
-          {selectedElement ? (
-            <div style={{ marginTop: 8, color: '#111827', fontSize: 14 }}>
-              <div>Type: <strong>{selectedElement.type}</strong></div>
-              <div>U-Value: <strong>{String(selectedElement.props.UValue)}</strong></div>
-              <div>Fire Class: <strong>{String(selectedElement.props.fireClass)}</strong></div>
-              <div>Status: <strong style={{ color: selectedElement.status === 'pass' ? '#16A34A' : selectedElement.status === 'warn' ? '#B45309' : '#C2410C' }}>{selectedElement.status}</strong></div>
-            </div>
-          ) : (
-            <div style={{ color: '#6B7280', marginTop: 8 }}>Select an element to view properties</div>
-          )}
+        <div id="properties-container" style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #f3f4f6', maxHeight: "50vh", overflow: "auto" }}>
+          {/* Element Properties */}
+
         </div>
       </div>
 
@@ -98,7 +150,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             <IconBrain width={16} height={16} style={{ color: '#06b6d4' }} />
             <div style={{ fontWeight: 600, fontSize: 14, color: '#1f2937' }}>AI Fix Recommendations</div>
           </div>
-          
+
           {loadingRecommendations ? (
             <div style={{ color: '#6b7280', fontSize: 13, padding: '12px 0' }}>Analyzing element context...</div>
           ) : (
@@ -106,7 +158,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               <div style={{ color: '#374151', fontSize: 13, lineHeight: 1.5, marginBottom: 16, padding: '8px 12px', background: '#f0f9ff', borderRadius: 4, border: '1px solid #e0f2fe' }}>
                 {aiRecommendations.analysis}
               </div>
-              
+
               {aiRecommendations.suggestions.map((suggestion, idx) => (
                 <div key={idx} style={{ marginBottom: 16 }}>
                   <div style={{ fontWeight: 500, fontSize: 12, color: '#1f2937', marginBottom: 8 }}>{suggestion.label}</div>
@@ -173,21 +225,21 @@ const Sidebar: React.FC<SidebarProps> = ({
       {/* BIM Portal Integration */}
       <div style={{ background: 'white', padding: 16, borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: '1px solid #e5e7eb' }}>
         <div style={{ fontWeight: 600, fontSize: 14, color: '#1f2937', marginBottom: 12 }}>BIM Portal Integration</div>
-        
+
         <div style={{ marginBottom: 12 }}>
           <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 6 }}>Export Options</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <button 
+            <button
               onClick={() => alert('Exporting compliance report to BIM Portal...')}
-              style={{ 
-                background: '#3b82f6', 
-                color: 'white', 
-                borderRadius: 4, 
-                padding: '8px 12px', 
-                display: 'flex', 
-                gap: 6, 
-                alignItems: 'center', 
-                fontWeight: 500, 
+              style={{
+                background: '#3b82f6',
+                color: 'white',
+                borderRadius: 4,
+                padding: '8px 12px',
+                display: 'flex',
+                gap: 6,
+                alignItems: 'center',
+                fontWeight: 500,
                 fontSize: 12,
                 width: '100%',
                 justifyContent: 'center',
@@ -197,17 +249,17 @@ const Sidebar: React.FC<SidebarProps> = ({
             >
               <IconSend width={12} height={12} /> Send Report to Portal
             </button>
-            <button 
+            <button
               onClick={() => alert('Syncing model data with BIM Portal...')}
-              style={{ 
-                background: '#10b981', 
-                color: 'white', 
-                borderRadius: 4, 
-                padding: '8px 12px', 
-                display: 'flex', 
-                gap: 6, 
-                alignItems: 'center', 
-                fontWeight: 500, 
+              style={{
+                background: '#10b981',
+                color: 'white',
+                borderRadius: 4,
+                padding: '8px 12px',
+                display: 'flex',
+                gap: 6,
+                alignItems: 'center',
+                fontWeight: 500,
                 fontSize: 12,
                 width: '100%',
                 justifyContent: 'center',

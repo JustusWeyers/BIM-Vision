@@ -1,19 +1,28 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as OBC from "@thatopen/components";
+import * as OBCF from "@thatopen/components-front";
+import * as BUIC from "@thatopen/ui-obc";
 import * as THREE from "three";
+import * as BUI from "@thatopen/ui";
+import { render } from "react-dom";
+import { useProperties } from "../utils/PropertiesContext";
+
+export const buiGridContainerRef = React.createRef<HTMLDivElement>();
+export const fileInputRef = React.createRef<HTMLInputElement>();
 const IFCViewer = () => {
-    const fileInputRef = useRef<HTMLInputElement>(null);
     const fileRef = useRef<File | null>(null);
     const worldRef = useRef<OBC.World>(null);
     const modelIDRef = useRef<number | null>(null);
     const fragmentIfcLoaderRef = useRef<OBC.IfcLoader>(null);
     const fragmentsRef = useRef<OBC.FragmentsManager>(null);
+    const buiPanelRef = useRef<HTMLDivElement>(null);
+    const { properties, components: componentsRef, viewport: viewportRef, update } = useProperties();
 
     const initializeWorld = async (container: HTMLElement | null) => {
+        const viewport = document.createElement("bim-viewport");
         const components = new OBC.Components();
         const worlds = components.get(OBC.Worlds);
         const world = worlds.create();
-
         world.scene = new OBC.SimpleScene(components);
         // Add lights to the scene
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
@@ -24,14 +33,20 @@ const IFCViewer = () => {
         world.scene.three.add(ambientLight);
         // @ts-ignore
         world.scene.three.add(directionalLight);
+        const rendererComponent = new OBC.SimpleRenderer(components, container);
+        world.renderer = rendererComponent;
 
-        world.renderer = new OBC.SimpleRenderer(components, container);
-
-        world.camera = new OBC.OrthoPerspectiveCamera(components);
+        const cameraComponent = new OBC.OrthoPerspectiveCamera(components);
+        world.camera = cameraComponent
         world.camera.controls.setLookAt(74, 16, 0.2, 30, -4, 27);
 
+        viewport.addEventListener("resize", () => {
+            rendererComponent.resize();
+            cameraComponent.updateAspect();
+        });
+        viewportRef.current = viewport;
         components.init();
-
+        componentsRef.current = components;
         const grids = components.get(OBC.Grids);
         grids.create(world);
 
@@ -45,7 +60,10 @@ const IFCViewer = () => {
         });
         const workerUrl = URL.createObjectURL(workerFile);
         await fragments.init(workerUrl);
-
+        viewport.addEventListener("resize", () => {
+            rendererComponent.resize();
+            cameraComponent.updateAspect();
+        });
         world.camera.controls.addEventListener("rest", () =>
             fragments.core.update(true),
         );
@@ -74,6 +92,55 @@ const IFCViewer = () => {
             world.scene.three.add(model.object);
             fragments.core.update(true);
         });
+        const highlighter = components.get(OBCF.Highlighter);
+        highlighter.setup({
+            world,
+            selectMaterialDefinition: {
+                // you can change this to define the color of your highligthing
+                color: new THREE.Color("#bcf124"),
+                opacity: 1,
+                transparent: false,
+                renderedFaces: 0,
+            },
+        });
+        highlighter.events.select.onHighlight.add(async (modelIdMap) => {
+            console.log("Something was selected");
+
+            const promises = [];
+            for (const [modelId, localIds] of Object.entries(modelIdMap)) {
+                const model = fragments.list.get(modelId);
+                if (!model) continue;
+                promises.push(model.getItemsData([...localIds]));
+            }
+
+            const data = (await Promise.all(promises)).flat();
+            console.log("model data: ", data);
+        });
+
+        highlighter.events.select.onClear.add(() => {
+            console.log("Selection was cleared");
+        });
+
+        // Create properties table
+        BUI.Manager.init();
+        const [propertiesTable, updatePropertiesTable] = BUIC.tables.itemsData({
+            components,
+            modelIdMap: {},
+        });
+        propertiesTable.preserveStructureOnFilter = true;
+        propertiesTable.indentationInText = false;
+        properties.current = propertiesTable;
+        highlighter.events.select.onHighlight.add((modelIdMap) => {
+            console.log(update);
+            
+            updatePropertiesTable({ modelIdMap });
+            update.current()
+        });
+
+        highlighter.events.select.onClear.add(() => {
+            updatePropertiesTable({ modelIdMap: {} })
+            update.current()
+        });
 
     };
 
@@ -101,21 +168,18 @@ const IFCViewer = () => {
         if (selectedFile) {
             console.log("File selected:", selectedFile);
             fileRef.current = selectedFile;
-
-            const container = document.getElementById("container");
-            if (!worldRef.current || !fragmentIfcLoaderRef.current) {
-                console.log("Initializing world and loader...");
-                initializeWorld(container).then(() => {
-
-                    if (worldRef.current && fragmentIfcLoaderRef.current) {
-                        loadIfc(selectedFile, fragmentIfcLoaderRef.current);
-                    }
-                });
-
+            if (worldRef.current && fragmentIfcLoaderRef.current) {
+                loadIfc(selectedFile, fragmentIfcLoaderRef.current);
             }
 
         }
     };
+    useEffect(() => {
+        const container = document.getElementById("container");
+        if (container) {
+            initializeWorld(container);
+        }
+    }, []);
 
     return (
         <div className="ifc-viewer">
