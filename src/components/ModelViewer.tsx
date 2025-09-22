@@ -1,6 +1,6 @@
 import {FC} from 'react';
 import { IconUpload, IconCheck } from '../Icons';
-
+import IFCViewer from './IFCViewer';
 interface ModelViewerProps {
   onRunRuleCheck: () => void;
   running: boolean;
@@ -27,6 +27,8 @@ const ModelViewer: FC<ModelViewerProps> = ({ onRunRuleCheck, running, onExport }
           </button>
         </div>
       </div>
+
+      <IFCViewer />
 
       <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'center' }}>
         <div style={{ padding: '4px 8px', borderRadius: 4, background: '#dcfce7', color: '#16a34a', fontWeight: 500, fontSize: 11 }}> Pass</div>
