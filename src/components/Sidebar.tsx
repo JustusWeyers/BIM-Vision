@@ -221,68 +221,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           </div>
         )}
       </div>
-
-      {/* BIM Portal Integration */}
-      <div style={{ background: 'white', padding: 16, borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: '1px solid #e5e7eb' }}>
-        <div style={{ fontWeight: 600, fontSize: 14, color: '#1f2937', marginBottom: 12 }}>BIM Portal Integration</div>
-
-        <div style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 6 }}>Export Options</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <button
-              onClick={() => alert('Exporting compliance report to BIM Portal...')}
-              style={{
-                background: '#3b82f6',
-                color: 'white',
-                borderRadius: 4,
-                padding: '8px 12px',
-                display: 'flex',
-                gap: 6,
-                alignItems: 'center',
-                fontWeight: 500,
-                fontSize: 12,
-                width: '100%',
-                justifyContent: 'center',
-                border: 'none',
-                cursor: 'pointer'
-              }}
-            >
-              <IconSend width={12} height={12} /> Send Report to Portal
-            </button>
-            <button
-              onClick={() => alert('Syncing model data with BIM Portal...')}
-              style={{
-                background: '#10b981',
-                color: 'white',
-                borderRadius: 4,
-                padding: '8px 12px',
-                display: 'flex',
-                gap: 6,
-                alignItems: 'center',
-                fontWeight: 500,
-                fontSize: 12,
-                width: '100%',
-                justifyContent: 'center',
-                border: 'none',
-                cursor: 'pointer'
-              }}
-            >
-              <IconDatabase width={12} height={12} /> Sync Model Data
-            </button>
-          </div>
-        </div>
-
-        <div style={{ paddingTop: 12, borderTop: '1px solid #f3f4f6' }}>
-          <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 6 }}>Portal Status</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981' }}></div>
-            <span style={{ fontSize: 11, color: '#374151' }}>Connected to Portal</span>
-          </div>
-          <div style={{ fontSize: 11, color: '#6b7280' }}>
-            Last sync: {new Date().toLocaleTimeString()}
-          </div>
-        </div>
-      </div>
+      
     </div>
   );
 };
