@@ -179,6 +179,93 @@ function extractPropertyInfo(propertyXml: string): string | null {
   }
 }
 
+export async function getAILLMRecommendations(api_key: string, element: Element, analysis: string): Promise<AIRecommendation | null> {
+    if (!element || !api_key) return null;
+    
+    try {
+        let contextInfo = analysis;
+        
+        // If analysis is empty or very short, fetch IDS data for context
+        if (!analysis || analysis.trim().length < 20) {
+            contextInfo = await LLMExplain(api_key, element)
+        }
+        
+        const prompt = `Als BIM-Experte, analysiere dieses Element und generiere konkrete Lösungsvorschläge:
+
+                        Element: ${element.id} (${element.type})
+                        Aktuelle Eigenschaften: ${JSON.stringify(element.props)}
+                        Status: ${element.status}
+
+                        Kontext/Analyse: ${contextInfo}
+
+                        Generiere 2-4 konkrete Lösungsvorschläge im JSON Format:
+                        {
+                        "suggestions": [
+                            {
+                            "property": "eigenschaftsname",
+                            "label": "Deutsche Beschreibung",
+                            "options": [
+                                {"value": "wert1", "reason": "Kurze Begründung"},
+                                {"value": "wert2", "reason": "Kurze Begründung"}
+                            ]
+                            }
+                        ]
+                        }
+
+                        Fokussiere auf fehlende/falsche Eigenschaften. Verwende deutsche Begriffe.`;
+
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${api_key}`
+            },
+            body: JSON.stringify({
+                model: 'gpt-3.5-turbo',
+                messages: [
+                    {
+                        role: 'system',
+                        content: 'Du bist ein deutscher BIM-Experte. Antworte nur mit gültigem JSON ohne zusätzlichen Text.'
+                    },
+                    {
+                        role: 'user',
+                        content: prompt
+                    }
+                ],
+                max_tokens: 300,
+                temperature: 0.2
+            })
+        });
+
+        if (!response.ok) {
+            console.error('OpenAI API error for recommendations:', response.status);
+            return null;
+        }
+
+        const data = await response.json();
+        const content = data.choices[0]?.message?.content;
+        
+        if (!content) {
+            return null;
+        }
+
+        try {
+            const parsed = JSON.parse(content);
+            return {
+                analysis: contextInfo,
+                suggestions: parsed.suggestions || []
+            };
+        } catch (parseError) {
+            console.warn('Failed to parse LLM JSON response, using fallback');
+            return null;
+        }
+
+    } catch (error) {
+        console.error('LLM recommendations failed:', error);
+        return null;
+    }
+}
+
 export async function getAIFixRecommendations(element: Element): Promise<AIRecommendation | null> {
   if (!element) return null;
   
