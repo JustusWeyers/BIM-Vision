@@ -95,31 +95,31 @@ function parseIDSForElement(idsXml: string, elementType: string): string {
   
   const requirements: string[] = [];
   
-  const specMatches = idsXml.match(/<specification[^>]*name="[^"]*"[^>]*>([\s\S]*?)<\/specification>/g);
+  const specMatches = idsXml.match(/<specification[^>]*>([\s\S]*?)<\/specification>/g);
   
   if (specMatches) {
     for (const spec of specMatches) {
       const isRelevant = checkSpecificationRelevance(spec, elementType);
       if (!isRelevant) continue;
       
-      const propertyMatches = spec.match(/<property[^>]*propertySet="([^"]*)"[^>]*baseName="([^"]*)"[^>]*dataType="([^"]*)"[^>]*>([\s\S]*?)<\/property>/g);
+      const nameMatch = spec.match(/name="([^"]*)"/);
+      const specName = nameMatch ? nameMatch[1] : 'Unknown';
+      
+      const propertyMatches = spec.match(/<property[^>]*>([\s\S]*?)<\/property>/g);
       
       if (propertyMatches) {
+        const specRequirements: string[] = [];
+        
         for (const prop of propertyMatches) {
           const propertyInfo = extractPropertyInfo(prop);
           if (propertyInfo) {
-            requirements.push(propertyInfo);
+            specRequirements.push(`  • ${propertyInfo}`);
           }
         }
-      }
-      
-      const materialMatches = spec.match(/<material[^>]*>([\s\S]*?)<\/material>/g);
-      if (materialMatches) {
-        for (const material of materialMatches) {
-          const materialInfo = extractMaterialInfo(material);
-          if (materialInfo) {
-            requirements.push(materialInfo);
-          }
+        
+        if (specRequirements.length > 0) {
+          requirements.push(`${specName}:`);
+          requirements.push(...specRequirements);
         }
       }
     }
@@ -131,71 +131,50 @@ function parseIDSForElement(idsXml: string, elementType: string): string {
 }
 
 function checkSpecificationRelevance(specification: string, elementType: string): boolean {
+  const entityMatch = specification.match(/<name>\s*<simpleValue>([^<]*)<\/simpleValue>\s*<\/name>/);
+  
+  if (!entityMatch) return false;
+  
+  const ifcEntity = entityMatch[1].toLowerCase();
+  
   const elementMappings = {
-    'Wall': ['IfcWall', 'Wall'],
-    'Door': ['IfcDoor', 'Door'],
-    'Column': ['IfcColumn', 'Column'],
-    'Window': ['IfcWindow', 'Window']
+    'Wall': ['ifcwall', 'ifcslab'],
+    'Door': ['ifcdoor'],
+    'Column': ['ifccolumn'],
+    'Window': ['ifcwindow'],
+    'Roof': ['ifcroof'],
+    'Slab': ['ifcslab']
   };
   
-  const relevantTerms = elementMappings[elementType as keyof typeof elementMappings] || [];
+  const relevantEntities = elementMappings[elementType as keyof typeof elementMappings] || [];
   
-  return relevantTerms.some(term => 
-    specification.toLowerCase().includes(term.toLowerCase())
+  return relevantEntities.some(entity => 
+    ifcEntity.includes(entity.toLowerCase())
   );
 }
 
 function extractPropertyInfo(propertyXml: string): string | null {
   try {
-    const propertySetMatch = propertyXml.match(/propertySet="([^"]*)"/);
-    const baseNameMatch = propertyXml.match(/baseName="([^"]*)"/);
-    const dataTypeMatch = propertyXml.match(/dataType="([^"]*)"/);
+    const propertySetMatch = propertyXml.match(/<propertySet>\s*<simpleValue>([^<]*)<\/simpleValue>\s*<\/propertySet>/);
     
-    if (!propertySetMatch || !baseNameMatch) return null;
+    const baseNameMatch = propertyXml.match(/<baseName>\s*<simpleValue>([^<]*)<\/simpleValue>\s*<\/baseName>/);
     
-    const propertySet = propertySetMatch[1];
+    const cardinalityMatch = propertyXml.match(/cardinality="([^"]*)"/);
+    
+    if (!baseNameMatch) return null;
+    
     const baseName = baseNameMatch[1];
-    const dataType = dataTypeMatch?.[1] || '';
+    const cardinality = cardinalityMatch ? cardinalityMatch[1] : '';
+    const isRequired = cardinality === 'required';
     
-    let requirement = `• ${baseName}`;
-    
-    const maxInclusiveMatch = propertyXml.match(/<xs:maxInclusive\s+value="([^"]*)"\/>/);
-    const minInclusiveMatch = propertyXml.match(/<xs:minInclusive\s+value="([^"]*)"\/>/);
-    
-    if (maxInclusiveMatch) {
-      requirement += ` ≤ ${maxInclusiveMatch[1]}`;
-      if (baseName.toLowerCase().includes('thermal') || baseName.toLowerCase().includes('uvalue')) {
-        requirement += ' W/m²K';
-      }
-    }
-    
-    if (minInclusiveMatch) {
-      requirement += ` ≥ ${minInclusiveMatch[1]}`;
-    }
-    
-    const enumMatches = propertyXml.match(/<xs:enumeration\s+value="([^"]*)"/g);
-    if (enumMatches && enumMatches.length > 0) {
-      const values = enumMatches.map(match => match.match(/value="([^"]*)"/)?.[1]).filter(Boolean);
-      requirement += ` (${values.join('/')})`;
+    let requirement = baseName;
+    if (isRequired) {
+      requirement += ' (erforderlich)';
     }
     
     return requirement;
   } catch (error) {
     console.warn('Error parsing property info:', error);
-    return null;
-  }
-}
-
-function extractMaterialInfo(materialXml: string): string | null {
-  try {
-    const valueMatches = materialXml.match(/<value\s+simpleValue="([^"]*)"/g);
-    if (valueMatches && valueMatches.length > 0) {
-      const materials = valueMatches.map(match => match.match(/simpleValue="([^"]*)"/)?.[1]).filter(Boolean);
-      return `• Material: ${materials.join(' oder ')}`;
-    }
-    return null;
-  } catch (error) {
-    console.warn('Error parsing material info:', error);
     return null;
   }
 }
