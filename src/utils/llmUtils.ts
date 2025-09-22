@@ -181,89 +181,98 @@ function extractPropertyInfo(propertyXml: string): string | null {
 
 export async function getAILLMRecommendations(api_key: string, element: Element, analysis: string): Promise<AIRecommendation | null> {
     if (!element || !api_key) return null;
+
+    const MAX_RETRIES = 3;
     
-    try {
-        let contextInfo = analysis;
-        
-        // If analysis is empty or very short, fetch IDS data for context
-        if (!analysis || analysis.trim().length < 20) {
-            contextInfo = await LLMExplain(api_key, element)
-        }
-        
-        const prompt = `Als BIM-Experte, analysiere dieses Element und generiere konkrete Lösungsvorschläge:
+    let contextInfo = analysis;
 
-                        Element: ${element.id} (${element.type})
-                        Aktuelle Eigenschaften: ${JSON.stringify(element.props)}
-                        Status: ${element.status}
+    // If analysis is empty or very short, fetch IDS data for context
+    if (!analysis || analysis.trim().length < 20) {
+        contextInfo = await LLMExplain(api_key, element)
+    }
+    
+    const prompt = `Als BIM-Experte, analysiere dieses Element und generiere konkrete Lösungsvorschläge:
 
-                        Kontext/Analyse: ${contextInfo}
+                    Element: ${element.id} (${element.type})
+                    Aktuelle Eigenschaften: ${JSON.stringify(element.props)}
+                    Status: ${element.status}
 
-                        Generiere 2-4 konkrete Lösungsvorschläge im JSON Format:
+                    Kontext/Analyse: ${contextInfo}
+
+                    Generiere 2-4 konkrete Lösungsvorschläge im JSON Format:
+                    {
+                    "suggestions": [
                         {
-                        "suggestions": [
-                            {
-                            "property": "eigenschaftsname",
-                            "label": "Deutsche Beschreibung",
-                            "options": [
-                                {"value": "wert1", "reason": "Kurze Begründung"},
-                                {"value": "wert2", "reason": "Kurze Begründung"}
-                            ]
-                            }
+                        "property": "eigenschaftsname",
+                        "label": "Deutsche Beschreibung",
+                        "options": [
+                            {"value": "wert1", "reason": "Kurze Begründung"},
+                            {"value": "wert2", "reason": "Kurze Begründung"}
                         ]
                         }
-
-                        Fokussiere auf fehlende/falsche Eigenschaften. Verwende deutsche Begriffe.`;
-
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${api_key}`
-            },
-            body: JSON.stringify({
-                model: 'gpt-3.5-turbo',
-                messages: [
-                    {
-                        role: 'system',
-                        content: 'Du bist ein deutscher BIM-Experte. Antworte nur mit gültigem JSON ohne zusätzlichen Text.'
-                    },
-                    {
-                        role: 'user',
-                        content: prompt
+                    ]
                     }
-                ],
-                max_tokens: 300,
-                temperature: 0.2
-            })
-        });
 
-        if (!response.ok) {
-            console.error('OpenAI API error for recommendations:', response.status);
-            return null;
-        }
+                    Fokussiere auf fehlende/falsche Eigenschaften. Verwende deutsche Begriffe.`;
 
-        const data = await response.json();
-        const content = data.choices[0]?.message?.content;
-        
-        if (!content) {
-            return null;
-        }
-
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
         try {
-            const parsed = JSON.parse(content);
-            return {
-                analysis: contextInfo,
-                suggestions: parsed.suggestions || []
-            };
-        } catch (parseError) {
-            console.warn('Failed to parse LLM JSON response, using fallback');
-            return null;
-        }
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${api_key}`
+                },
+                body: JSON.stringify({
+                    model: 'gpt-3.5-turbo',
+                    messages: [
+                        {
+                            role: 'system',
+                            content: 'Du bist ein deutscher BIM-Experte. Antworte nur mit gültigem JSON ohne zusätzlichen Text.'
+                        },
+                        {
+                            role: 'user',
+                            content: prompt
+                        }
+                    ],
+                    max_tokens: 300,
+                    temperature: 0.2
+                })
+            });
 
-    } catch (error) {
-        console.error('LLM recommendations failed:', error);
-        return null;
+            if (!response.ok) {
+                console.error('OpenAI API error for recommendations:', response.status);
+                continue; // Try again
+            }
+
+            const data = await response.json();
+            const content = data.choices[0]?.message?.content;
+            
+            if (!content) {
+                continue; // Try again
+            }
+
+            try {
+                console.log(content)
+                const parsed = JSON.parse(content);
+                return {
+                    analysis: contextInfo,
+                    suggestions: parsed.suggestions || []
+                };
+            } catch (parseError) {
+                console.warn(`Failed to parse LLM JSON response on attempt ${attempt}, trying again...`);
+                // Continue to next attempt
+            }
+
+        } catch (error) {
+            console.error(`LLM request failed on attempt ${attempt}:`, error);
+            // Continue to next attempt
+        }
     }
+    
+    // All attempts failed
+    console.warn('All LLM attempts failed, returning null');
+    return null;
 }
 
 export async function getAIFixRecommendations(element: Element): Promise<AIRecommendation | null> {

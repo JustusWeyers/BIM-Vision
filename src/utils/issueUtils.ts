@@ -73,6 +73,111 @@ interface BCFIssue {
 }
 
 
+interface JiraConfig {
+  baseUrl: string; // e.g., "https://yourcompany.atlassian.net"
+  email: string;   // Your Jira email
+  apiToken: string; // Jira API token
+  projectKey: string; // e.g., "BIM" or "PROJ"
+}
+
+export async function submitBCFToJira(bcfIssue: BCFIssue, config: JiraConfig): Promise<{ success: boolean; jiraKey?: string; error?: string }> {
+  try {
+    const topic = bcfIssue.markup.topic;
+    const comment = bcfIssue.markup.comments[0];
+    
+    // Prepare issue data for the backend
+    const issueData = {
+      summary: topic.title,
+      description: `${comment.comment}\n\nTechnical Details:\n${topic.description || 'No additional details provided.'}\n\nBCF Reference: ${topic.guid}`,
+      issue_type: 'Task', // You can map this based on topic.topic_type
+      priority: topic.priority || 'Medium',
+      labels: topic.labels || ['BIM', 'BCF'],
+      bcf_reference: topic.guid
+    };
+    
+    // Call the Flask backend
+    const backendUrl = 'http://localhost:5001/api/jira/issue';
+    
+    console.log('Sending to Flask backend:', backendUrl);
+    console.log('Issue data:', JSON.stringify(issueData, null, 2));
+    
+    const response = await fetch(backendUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(issueData)
+    });
+
+    console.log('Backend response status:', response.status);
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      console.log('Jira issue created via backend:', result.issue_key);
+      return {
+        success: true,
+        jiraKey: result.issue_key
+      };
+    } else {
+      console.error('Backend error:', result.error);
+      return {
+        success: false,
+        error: result.error
+      };
+    }
+
+  } catch (error) {
+    console.error('Error submitting to backend:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    };
+  }
+}
+
+export async function createAndSubmitToJira(
+  api_key: string,
+  element: Element,
+  jiraConfig: JiraConfig,
+  projectName: string = "BIM Project",
+  author: string = "BIM Analyst",
+  guid: string = "0f025453-562a-489f-9e4c-58b675128f85"
+): Promise<{ success: boolean; bcfIssue?: BCFIssue; jiraKey?: string; error?: string }> {
+  try {
+    const bcfIssue = await createBCFIssue(api_key, element, guid, projectName, author);
+    
+    if (!bcfIssue) {
+      return { success: false, error: "Failed to generate BCF issue" };
+    }
+
+    const jiraResult = await submitBCFToJira(bcfIssue, jiraConfig);
+    
+    if (jiraResult.success) {
+      downloadBCFIssue(bcfIssue, `${element.id}-${jiraResult.jiraKey}.bcf`);
+      
+      return { 
+        success: true, 
+        bcfIssue, 
+        jiraKey: jiraResult.jiraKey 
+      };
+    } else {
+      return { 
+        success: false, 
+        error: jiraResult.error, 
+        bcfIssue 
+      };
+    }
+    
+  } catch (error) {
+    console.error('Error in createAndSubmitToJira:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : "Unknown error" 
+    };
+  }
+}
+
 export async function createBCFIssue(
   api_key: string,
   element: Element,
@@ -224,7 +329,6 @@ function createBCFFromLLMResult(
     }
   };
 }
-
 
 export async function submitBCFIssue(bcfIssue: BCFIssue, projectId: string = "default"): Promise<boolean> {
   try {
