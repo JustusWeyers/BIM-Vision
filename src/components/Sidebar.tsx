@@ -9,11 +9,13 @@ interface SidebarProps {
   llmText: string;
   aiRecommendations: AIRecommendation | null;
   loadingRecommendations: boolean;
+  loadingAIIssue: boolean;
   onExplain: () => void;
   onAddIssue: (title: string, description: string) => void;
   onGetAIRecommendations: () => void;
   onApplyAISuggestion: (property: string, value: string | number) => void;
   onFixElement: (elementId: string) => void;
+  onCreateAIIssue: () => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -23,11 +25,13 @@ const Sidebar: React.FC<SidebarProps> = ({
   llmText,
   aiRecommendations,
   loadingRecommendations,
+  loadingAIIssue,
   onExplain,
   onAddIssue,
   onGetAIRecommendations,
   onApplyAISuggestion,
-  onFixElement
+  onFixElement,
+  onCreateAIIssue
 }) => {
   const selectedElement = selectedId ? elements.find((e) => e.id === selectedId) : null;
 
@@ -52,6 +56,21 @@ const Sidebar: React.FC<SidebarProps> = ({
                   if (title) onAddIssue(title, desc || '');
                 }} style={{ background: '#f59e0b', color: 'white', borderRadius: 4, padding: '6px 10px', display: 'flex', gap: 4, alignItems: 'center', fontWeight: 500, fontSize: 12, border: 'none', cursor: 'pointer' }}>
                   <IconAlert width={12} height={12} /> Issue
+                </button>
+                <button onClick={onCreateAIIssue} disabled={loadingAIIssue} style={{ 
+                  background: loadingAIIssue ? '#94a3b8' : '#06b6d4', 
+                  color: 'white', 
+                  borderRadius: 4, 
+                  padding: '6px 10px', 
+                  display: 'flex', 
+                  gap: 4, 
+                  alignItems: 'center', 
+                  fontWeight: 500, 
+                  fontSize: 12, 
+                  border: 'none', 
+                  cursor: loadingAIIssue ? 'not-allowed' : 'pointer' 
+                }}>
+                  <IconBrain width={12} height={12} /> {loadingAIIssue ? 'Creating...' : 'AI Issue'}
                 </button>
                 {selectedElement && (selectedElement.status === 'warn' || selectedElement.status === 'fail') && (
                   <>

@@ -90,7 +90,7 @@ export async function LLMExplain(api_key: string, element: Element): Promise<str
   }
 }
 
-function parseIDSForElement(idsXml: string, elementType: string): string {
+export function parseIDSForElement(idsXml: string, elementType: string): string {
   if (!idsXml || typeof idsXml !== 'string') return '';
   
   const requirements: string[] = [];
