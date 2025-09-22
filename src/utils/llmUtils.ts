@@ -182,7 +182,7 @@ function extractPropertyInfo(propertyXml: string): string | null {
 export async function getAILLMRecommendations(api_key: string, element: Element, analysis: string): Promise<AIRecommendation | null> {
     if (!element || !api_key) return null;
 
-    const MAX_RETRIES = 3;
+    const MAX_RETRIES = 10;
     
     let contextInfo = analysis;
 

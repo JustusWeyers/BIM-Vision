@@ -3,7 +3,7 @@ import type {paths} from "./types";
 const API_HOST = "https://via.bund.de/bim/"
 
 // @ts-ignore
-export async function makeBIMPortalRequest<T extends keyof paths, M extends "get" | "post">(path: T, method: M = "get", guid: string | undefined = undefined, apiHost: string = API_HOST, body: string | undefined = undefined, bearer: string | undefined = undefined): Promise<object | null> {
+export async function makeBIMPortalRequest<T extends keyof paths, M extends "get" | "post">(path: T, method: M = "get", guid: string | undefined = undefined, apiHost: string = API_HOST, body: string | undefined = undefined, bearer: string | undefined = undefined): Promise<unknown> {
     let fixedPath: null | string = null;
 
     if (path.includes("{guid}")) {
