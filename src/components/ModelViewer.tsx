@@ -1,6 +1,7 @@
 import {FC} from 'react';
 import { IconUpload, IconCheck } from '../Icons';
 import IFCViewer from './IFCViewer';
+import { fileInputRef } from './IFCViewer';
 interface ModelViewerProps {
   onRunRuleCheck: () => void;
   running: boolean;
@@ -19,7 +20,7 @@ const ModelViewer: FC<ModelViewerProps> = ({ onRunRuleCheck, running, onExport }
           <button onClick={onExport} style={{ borderRadius: 6, background: '#6b7280', color: 'white', padding: '8px 12px', display: 'flex', gap: 6, alignItems: 'center', fontWeight: 500, fontSize: 14, border: 'none', cursor: 'pointer' }}>
             Export
           </button>
-          <button onClick={() => alert('In real app: select a .ifc file and load it with IFC.js')} style={{ borderRadius: 6, background: '#3b82f6', color: 'white', padding: '8px 12px', display: 'flex', gap: 6, alignItems: 'center', fontWeight: 500, fontSize: 14, border: 'none', cursor: 'pointer' }}>
+          <button onClick={() => fileInputRef.current?.click()} style={{ borderRadius: 6, background: '#3b82f6', color: 'white', padding: '8px 12px', display: 'flex', gap: 6, alignItems: 'center', fontWeight: 500, fontSize: 14, border: 'none', cursor: 'pointer' }}>
             <IconUpload /> Load IFC
           </button>
           <button onClick={onRunRuleCheck} disabled={running} style={{ borderRadius: 6, background: running ? '#f59e0b' : '#10b981', color: 'white', padding: '8px 12px', display: 'flex', gap: 6, alignItems: 'center', fontWeight: 500, fontSize: 14, border: 'none', cursor: 'pointer' }}>

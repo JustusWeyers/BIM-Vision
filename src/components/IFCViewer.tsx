@@ -191,9 +191,7 @@ const IFCViewer = () => {
                 style={{ display: 'none' }}
                 onChange={handleFileChange}
             />
-            <button className="upload-button" onClick={() => fileInputRef.current?.click()}>
-                Upload IFC File
-            </button>
+            {/* INPUT FILE UPLOAD IS DEFINED IN MODELVIEWER*/}
         </div>
     );
 };
