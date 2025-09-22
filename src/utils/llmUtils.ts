@@ -1,4 +1,4 @@
-import { Element, AIRecommendation } from '../types';
+import { Element, AIRecommendation, Issue } from '../types';
 
 export async function mockLLMExplain(element: Element): Promise<string> {
   if (!element) return "Element not found.";
@@ -92,4 +92,72 @@ export async function getAIFixRecommendations(element: Element): Promise<AIRecom
   }
 
   return recommendations;
+}
+
+export function calculateElementStatus(element: Element): Element['status'] {
+  let status: Element['status'] = "pass";
+  
+  if (element.type === "Wall") {
+    if (!element.props.UValue && !element.props.fireClass) status = "fail";
+    else if (!element.props.UValue || !element.props.fireClass) status = "warn";
+  } else if (element.type === "Door") {
+    if (!element.props.fireClass) status = "warn";
+  }
+  
+  return status;
+}
+
+export function applyAISuggestionToElement(
+  elements: Element[], 
+  selectedId: string, 
+  property: string, 
+  value: string | number
+): Element[] {
+  return elements.map((element) => {
+    if (element.id === selectedId) {
+      const updatedProps = { ...element.props, [property]: value };
+      const newStatus = calculateElementStatus({ ...element, props: updatedProps });
+      return { ...element, props: updatedProps, status: newStatus };
+    }
+    return element;
+  });
+}
+
+export function manualFixElement(element: Element): { props: any; fixed: boolean } {
+  let updatedProps = { ...element.props };
+  let fixed = false;
+
+  if (element.type === "Wall") {
+    if (!element.props.UValue) {
+      const uValue = prompt("Enter U-Value for wall (e.g., 0.25):");
+      if (uValue && !isNaN(parseFloat(uValue))) {
+        updatedProps.UValue = parseFloat(uValue);
+        fixed = true;
+      }
+    }
+    if (!element.props.fireClass) {
+      const fireClass = prompt("Enter Fire Class (e.g., F30, F60, F90):");
+      if (fireClass) {
+        updatedProps.fireClass = fireClass;
+        fixed = true;
+      }
+    }
+  } else if (element.type === "Door") {
+    if (!element.props.fireClass) {
+      const fireClass = prompt("Enter Fire Class for door (e.g., F30, F60):");
+      if (fireClass) {
+        updatedProps.fireClass = fireClass;
+        fixed = true;
+      }
+    }
+  }
+
+  return { props: updatedProps, fixed };
+}
+
+export function runElementRuleCheck(elements: Element[]): Element[] {
+  return elements.map((el) => {
+    const status = calculateElementStatus(el);
+    return { ...el, status };
+  });
 }
