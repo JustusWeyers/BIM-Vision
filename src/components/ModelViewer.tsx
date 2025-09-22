@@ -28,6 +28,8 @@ const ModelViewer: FC<ModelViewerProps> = ({ onRunRuleCheck, running, onExport }
         </div>
       </div>
 
+      {/* Here the IFCViewer should come */}
+
       <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'center' }}>
         <div style={{ padding: '4px 8px', borderRadius: 4, background: '#dcfce7', color: '#16a34a', fontWeight: 500, fontSize: 11 }}> Pass</div>
         <div style={{ padding: '4px 8px', borderRadius: 4, background: '#fef3c7', color: '#d97706', fontWeight: 500, fontSize: 11 }}> Warn</div>
