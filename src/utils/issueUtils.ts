@@ -140,10 +140,11 @@ export async function createAndSubmitToJira(
   jiraConfig: JiraConfig,
   projectName: string = "BIM Project",
   author: string = "BIM Analyst",
-  guid: string = "0f025453-562a-489f-9e4c-58b675128f85"
+  guid: string = "0f025453-562a-489f-9e4c-58b675128f85",
+  resultsCheck: any = "",
 ): Promise<{ success: boolean; bcfIssue?: BCFIssue; jiraKey?: string; error?: string }> {
   try {
-    const bcfIssue = await createBCFIssue(api_key, element, guid, projectName, author);
+    const bcfIssue = await createBCFIssue(api_key, element, guid, projectName, author, resultsCheck);
     
     if (!bcfIssue) {
       return { success: false, error: "Failed to generate BCF issue" };
@@ -181,13 +182,50 @@ export async function createBCFIssue(
   element: Element,
   guid: string,
   projectName: string = "BIM Project",
-  author: string = "BIM Analyst"
+  author: string = "BIM Analyst",
+  resultsCheck: any = "",
 ): Promise<BCFIssue | null> {
   if (!api_key || !element) return null;
 
   try {
     const idsData = await makeBIMPortalRequest("/aia/api/v1/public/aiaProject/{guid}/IDS", "get", element.guid);
     const idsContext = idsData ? parseIDSForElement(idsData as string, element.type) : '';
+    
+    // Add validation context from resultsCheck
+    let validationContext = '';
+    if (resultsCheck && (resultsCheck.failed || resultsCheck.passed)) {
+      const elementId = element.id;
+      const elementGuid = element.guid;
+      
+      const failedSpecs = resultsCheck.failed ? resultsCheck.failed.filter((spec: any) => 
+        spec.guids.includes(elementId) || spec.guids.includes(elementGuid)
+      ) : [];
+      
+      const passedSpecs = resultsCheck.passed ? resultsCheck.passed.filter((spec: any) => 
+        spec.guids.includes(elementId) || spec.guids.includes(elementGuid)
+      ) : [];
+      
+      if (failedSpecs.length > 0 || passedSpecs.length > 0) {
+        validationContext = `\n\nIDS Validation Results for this Element:\n`;
+        
+        if (failedSpecs.length > 0) {
+          validationContext += `FAILED SPECIFICATIONS:\n`;
+          failedSpecs.forEach((spec: any) => {
+            validationContext += `- ${spec.name}: ${spec.description || 'No description'}\n`;
+          });
+        }
+        
+        if (passedSpecs.length > 0) {
+          validationContext += `PASSED SPECIFICATIONS:\n`;
+          passedSpecs.forEach((spec: any) => {
+            validationContext += `- ${spec.name}: ${spec.description || 'No description'}\n`;
+          });
+        }
+        
+        validationContext += `\nValidation Summary: ${failedSpecs.length} failed, ${passedSpecs.length} passed specifications for this element.\n`;
+      }
+    }
+    
     const prompt = `Als BIM-Experte, erstelle einen BCF-Issue für dieses Element:
 
                     Element: ${element.id} (${element.type})
@@ -196,7 +234,8 @@ export async function createBCFIssue(
 
                     IDS Anforderungen:
                     ${idsContext}
-
+                    
+                    ${validationContext}
                     Generiere BCF Issue Inhalte im JSON Format:
                     {
                     "guid": ${guid},
