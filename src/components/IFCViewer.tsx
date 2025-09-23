@@ -16,6 +16,7 @@ const IFCViewer = () => {
     const fragmentIfcLoaderRef = useRef<OBC.IfcLoader>(null);
     const fragmentsRef = useRef<OBC.FragmentsManager>(null);
     const buiPanelRef = useRef<HTMLDivElement>(null);
+    const highlighterRef = useRef<OBCF.Highlighter>(null);
     const { properties, components: componentsRef, viewport: viewportRef, update } = useProperties();
 
     const initializeWorld = async (container: HTMLElement | null) => {
@@ -51,6 +52,7 @@ const IFCViewer = () => {
         grids.create(world);
 
         const fragments = components.get(OBC.FragmentsManager);
+        console.log("fragments: ", fragments);
         const githubUrl =
             "https://thatopen.github.io/engine_fragment/resources/worker.mjs";
         const fetchedUrl = await fetch(githubUrl);
@@ -93,6 +95,7 @@ const IFCViewer = () => {
             fragments.core.update(true);
         });
         const highlighter = components.get(OBCF.Highlighter);
+        highlighterRef.current = highlighter;
         highlighter.setup({
             world,
             selectMaterialDefinition: {
@@ -103,7 +106,13 @@ const IFCViewer = () => {
                 renderedFaces: 0,
             },
         });
+        console.log("Highlighter events: ", highlighter.events);
         highlighter.events.select.onHighlight.add(async (modelIdMap) => {
+            console.log("modelIdMap: ", modelIdMap);
+            const test: Record<string, Set<number>> = {
+            "ifc": new Set([26021]),
+            };
+            console.log("test", test);
             console.log("Something was selected");
 
             const promises = [];
@@ -116,6 +125,8 @@ const IFCViewer = () => {
             const data = (await Promise.all(promises)).flat();
             console.log("model data: ", data);
         });
+
+
 
         highlighter.events.select.onClear.add(() => {
             console.log("Selection was cleared");
@@ -153,7 +164,7 @@ const IFCViewer = () => {
             if (buffer.length === 0) {
                 throw new Error("Empty buffer");
             }
-            const model = await loader.load(buffer, false, "example", {
+            const model = await loader.load(buffer, false, "ifc", {
                 processData: {
                     progressCallback: (progress) => console.log(progress),
                 },
@@ -162,7 +173,75 @@ const IFCViewer = () => {
             console.error("Error loading IFC model:", error);
         }
     };
+    const colorModel = async () => {
+        const fragments = fragmentsRef.current;
+        const components = componentsRef.current;
+        console.log("Fragments: ", fragments.guidsToModelIdMap(["23VTROq_T7XuNLbHWQs_3z"]));
+        const mmap = await fragments.guidsToModelIdMap(["23VTROq_T7XuNLbHWQs_3z"]);
+        
+        const highlighter = components.get(OBCF.Highlighter);
+        if (!highlighter || !highlighter.events || !highlighter.events.select) {
+            console.warn("Highlighter not set up yet.");
+            return;
+        }
+         // Define custom styles for selections
+        highlighter.styles.set("red", {
+            color: new THREE.Color("#ef4444"),
+            opacity: 1,
+            transparent: false,
+            renderedFaces: 0,
+        });
+        highlighter.styles.set("green", {
+            color: new THREE.Color("#22c55e"),
+            opacity: 1,
+            transparent: false,
+            renderedFaces: 0,
+        });
+        highlighter.styles.set("yellow", {
+            color: new THREE.Color("#facc15"),
+            opacity: 1,
+            transparent: false,
+            renderedFaces: 0,
+        });
+            
 
+        const red: Record<string, Set<number>> = {
+        "ifc": new Set([26201]),
+        };
+        const green: Record<string, Set<number>> = {
+        "ifc": new Set([144]),
+        };
+        const yellow: Record<string, Set<number>> = {
+        "ifc": new Set([26131]),
+        };
+        // Use highlightByID for each model with a unique name and color
+        highlighterRef.current;
+        await highlighterRef.current.highlightByID(
+            "red",
+            mmap,
+            true, // don't remove previous highlights
+            false, // don't zoom to selection
+            null,  // no exclusions
+            false, // not picking
+        );
+        await highlighterRef.current.highlightByID(
+            "green",
+            green,
+            true, // don't remove previous highlights
+            false, // don't zoom to selection
+            null,  // no exclusions
+            false, // not picking
+        );
+        await highlighterRef.current.highlightByID(
+            "yellow",
+            yellow,
+            true, // don't remove previous highlights
+            false, // don't zoom to selection
+            null,  // no exclusions
+            false, // not picking
+        );
+        
+    };
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = event.target.files?.[0];
         if (selectedFile) {
@@ -192,6 +271,7 @@ const IFCViewer = () => {
                 onChange={handleFileChange}
             />
             {/* INPUT FILE UPLOAD IS DEFINED IN MODELVIEWER*/}
+            <button onClick={colorModel}>Color Model</button>
         </div>
     );
 };
