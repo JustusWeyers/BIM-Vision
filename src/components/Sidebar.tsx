@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, {MutableRefObject, useEffect, useRef, useState} from 'react';
 import { Element, Issue, AIRecommendation } from '../types';
 import { IconAlert, IconBrain, IconCheck, IconDatabase, IconMessage, IconSend, IconTool } from '../Icons';
 import { buiGridContainerRef } from './IFCViewer';
@@ -6,6 +6,7 @@ import { useProperties } from '../utils/PropertiesContext';
 import * as BUI from "@thatopen/ui";
 import * as BUIC from "@thatopen/ui-obc";
 import { fileInputRef } from './IFCViewer';
+import BIMPortalSelect from "./BIMPortalSelect";
 
 interface SidebarProps {
   selectedId: string | null;
@@ -22,6 +23,7 @@ interface SidebarProps {
   onFixElement: (elementId: string) => void;
   onCreateAIIssue: (element: Element) => void;
   onAddElement: (element: Element[]) => void; // New prop to add element to the elements array
+  aiaRef: MutableRefObject<string | null>
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -38,7 +40,8 @@ const Sidebar: React.FC<SidebarProps> = ({
   onApplyAISuggestion,
   onFixElement,
   onCreateAIIssue,
-  onAddElement // New prop to add element to the elements array
+  onAddElement, // New prop to add element to the elements array
+  aiaRef
 }) => {
   const [selectedElement, setSelectedElement] = useState<Element>(null);
   let seletecId = "nothing"
@@ -367,6 +370,8 @@ const Sidebar: React.FC<SidebarProps> = ({
           </div>
         )}
       </div>
+
+        <BIMPortalSelect selectedBIMPortalAIAguidRef={aiaRef} />
       
     </div>
   );
