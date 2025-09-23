@@ -7,15 +7,16 @@ import * as BUI from "@thatopen/ui";
 import { render } from "react-dom";
 import { Element } from '../types';
 import { useProperties } from "../utils/PropertiesContext";
-
+import { IdsRequest, runIDSCheck } from "../ValidationReport";
 interface IFCViewerProps {
   setElementsIFC: (elements: Element[]) => void;
   onComponentsReady?: (components: OBC.Components) => void;
+  onRunRuleCheck?: (components: OBC.Components) => void;
 }
 
 export const buiGridContainerRef = React.createRef<HTMLDivElement>();
-export const fileInputRef = React.createRef<HTMLInputElement>();
-const IFCViewer: FC<IFCViewerProps> = ({ setElementsIFC, onComponentsReady }) => {
+export const fileInputRef = React.createRef<HTMLInputElement>(); 
+const IFCViewer: FC<IFCViewerProps> = ({ setElementsIFC, onComponentsReady, onRunRuleCheck }) => {
     const fileRef = useRef<File | null>(null);
     const worldRef = useRef<OBC.World>(null);
     const modelIDRef = useRef<number | null>(null);
@@ -24,7 +25,14 @@ const IFCViewer: FC<IFCViewerProps> = ({ setElementsIFC, onComponentsReady }) =>
     const buiPanelRef = useRef<HTMLDivElement>(null);
     const highlighterRef = useRef<OBCF.Highlighter>(null);
     const { properties, components: componentsRef, viewport: viewportRef, update } = useProperties();
+    const runRuleCheck = async () => {
+        const idsXML = await IdsRequest("/aia/api/v1/public/aiaProject/{guid}/IDS", "0f025453-562a-489f-9e4c-58b675128f85");
+        if (!idsXML) return alert("IDS XML could not be loaded");
+        const resultGUID = await runIDSCheck(componentsRef.current, idsXML);
+        colorModel(resultGUID.pass, resultGUID.fail);
 
+
+    };
     const initializeWorld = async (container: HTMLElement | null) => {
         const viewport = document.createElement("bim-viewport");
         const components = new OBC.Components();
@@ -183,12 +191,12 @@ const IFCViewer: FC<IFCViewerProps> = ({ setElementsIFC, onComponentsReady }) =>
             console.error("Error loading IFC model:", error);
         }
     };
-    const colorModel = async () => {
+    const colorModel = async (passed, failed) => {
         const fragments = fragmentsRef.current;
         const components = componentsRef.current;
         console.log("Fragments: ", fragments.guidsToModelIdMap(["23VTROq_T7XuNLbHWQs_3z"]));
-        const mmap = await fragments.guidsToModelIdMap(["23VTROq_T7XuNLbHWQs_3z"]);
-        
+        const green = await fragments.guidsToModelIdMap(passed);
+        const red = await fragments.guidsToModelIdMap(failed);
         const highlighter = components.get(OBCF.Highlighter);
         if (!highlighter || !highlighter.events || !highlighter.events.select) {
             console.warn("Highlighter not set up yet.");
@@ -215,12 +223,6 @@ const IFCViewer: FC<IFCViewerProps> = ({ setElementsIFC, onComponentsReady }) =>
         });
             
 
-        const red: Record<string, Set<number>> = {
-        "ifc": new Set([26201]),
-        };
-        const green: Record<string, Set<number>> = {
-        "ifc": new Set([144]),
-        };
         const yellow: Record<string, Set<number>> = {
         "ifc": new Set([26131]),
         };
@@ -228,7 +230,7 @@ const IFCViewer: FC<IFCViewerProps> = ({ setElementsIFC, onComponentsReady }) =>
         highlighterRef.current;
         await highlighterRef.current.highlightByID(
             "red",
-            mmap,
+            red,
             true, // don't remove previous highlights
             false, // don't zoom to selection
             null,  // no exclusions
@@ -281,7 +283,7 @@ const IFCViewer: FC<IFCViewerProps> = ({ setElementsIFC, onComponentsReady }) =>
                 onChange={handleFileChange}
             />
             {/* INPUT FILE UPLOAD IS DEFINED IN MODELVIEWER*/}
-            <button onClick={colorModel}>Color Model</button>
+            <button onClick={runRuleCheck}>Color Model</button>
         </div>
     );
 };

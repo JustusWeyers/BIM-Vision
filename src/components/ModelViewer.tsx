@@ -19,7 +19,7 @@ const ModelViewer: FC<ModelViewerProps> = ({ onRunRuleCheck, running, onExport, 
 
   const handleRunRuleCheck = () => {
     if (!componentsRef) {
-      alert("Components not initialized yet!2");
+      alert("Components not initialized yet!");
       return;
     }
     setComponents(componentsRef);
@@ -45,7 +45,7 @@ const ModelViewer: FC<ModelViewerProps> = ({ onRunRuleCheck, running, onExport, 
         </div>
       </div>
 
-      <IFCViewer onComponentsReady={setComponentsRef} setElementsIFC={setElementsIFC} />
+      <IFCViewer onComponentsReady={setComponentsRef} setElementsIFC={setElementsIFC} onRunRuleCheck={onRunRuleCheck} />
 
       <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'center' }}>
         <div style={{ padding: '4px 8px', borderRadius: 4, background: '#dcfce7', color: '#16a34a', fontWeight: 500, fontSize: 11 }}> Pass</div>
