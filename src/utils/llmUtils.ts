@@ -92,7 +92,7 @@ export async function LLMExplain(api_key: string, element: Element): Promise<str
 
 export function parseIDSForElement(idsXml: string, elementType: string): string {
   if (!idsXml || typeof idsXml !== 'string') return '';
-  
+  elementType = "Wall"
   const requirements: string[] = [];
   
   const specMatches = idsXml.match(/<specification[^>]*>([\s\S]*?)<\/specification>/g);

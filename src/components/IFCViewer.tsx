@@ -1,15 +1,21 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, {FC, useEffect, useRef, useState } from "react";
 import * as OBC from "@thatopen/components";
 import * as OBCF from "@thatopen/components-front";
 import * as BUIC from "@thatopen/ui-obc";
 import * as THREE from "three";
 import * as BUI from "@thatopen/ui";
 import { render } from "react-dom";
+import { Element } from '../types';
 import { useProperties } from "../utils/PropertiesContext";
+
+interface IFCViewerProps {
+  setElementsIFC: (elements: Element[]) => void;
+  onComponentsReady?: (components: OBC.Components) => void;
+}
 
 export const buiGridContainerRef = React.createRef<HTMLDivElement>();
 export const fileInputRef = React.createRef<HTMLInputElement>();
-const IFCViewer = () => {
+const IFCViewer: FC<IFCViewerProps> = ({ setElementsIFC, onComponentsReady }) => {
     const fileRef = useRef<File | null>(null);
     const worldRef = useRef<OBC.World>(null);
     const modelIDRef = useRef<number | null>(null);
@@ -47,6 +53,10 @@ const IFCViewer = () => {
         });
         viewportRef.current = viewport;
         components.init();
+        if (onComponentsReady) {
+            onComponentsReady(components);
+            console.log("Components ready and passed to parent");
+        }
         componentsRef.current = components;
         const grids = components.get(OBC.Grids);
         grids.create(world);
