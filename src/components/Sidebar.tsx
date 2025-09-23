@@ -20,7 +20,7 @@ interface SidebarProps {
   onGetAIRecommendations: (element: Element) => void;
   onApplyAISuggestion: (property: string, value: string | number) => void;
   onFixElement: (elementId: string) => void;
-  onCreateAIIssue: () => void;
+  onCreateAIIssue: (element: Element) => void;
   onAddElement: (element: Element[]) => void; // New prop to add element to the elements array
 }
 
@@ -245,7 +245,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 }} style={{ background: '#f59e0b', color: 'white', borderRadius: 4, padding: '6px 10px', display: 'flex', gap: 4, alignItems: 'center', fontWeight: 500, fontSize: 12, border: 'none', cursor: 'pointer' }}>
                   <IconAlert width={12} height={12} /> Issue
                 </button>
-                <button onClick={onCreateAIIssue} disabled={loadingAIIssue} style={{ 
+                <button onClick={() => onCreateAIIssue(selectedElement)} disabled={loadingAIIssue} style={{ 
                   background: loadingAIIssue ? '#94a3b8' : '#06b6d4', 
                   color: 'white', 
                   borderRadius: 4, 
