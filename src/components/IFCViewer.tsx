@@ -10,11 +10,12 @@ import { useProperties } from "../utils/PropertiesContext";
 
 interface IFCViewerProps {
   setElementsIFC: (elements: Element[]) => void;
+  onComponentsReady?: (components: OBC.Components) => void;
 }
 
 export const buiGridContainerRef = React.createRef<HTMLDivElement>();
 export const fileInputRef = React.createRef<HTMLInputElement>();
-const IFCViewer: FC<IFCViewerProps> = ({ setElementsIFC }) => {
+const IFCViewer: FC<IFCViewerProps> = ({ setElementsIFC, onComponentsReady }) => {
     const fileRef = useRef<File | null>(null);
     const worldRef = useRef<OBC.World>(null);
     const modelIDRef = useRef<number | null>(null);
@@ -52,6 +53,10 @@ const IFCViewer: FC<IFCViewerProps> = ({ setElementsIFC }) => {
         });
         viewportRef.current = viewport;
         components.init();
+        if (onComponentsReady) {
+            onComponentsReady(components);
+            console.log("Components ready and passed to parent");
+        }
         componentsRef.current = components;
         const grids = components.get(OBC.Grids);
         grids.create(world);
