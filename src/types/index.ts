@@ -10,6 +10,7 @@ export interface Element {
   props: ElementProps;
   status: 'pass' | 'warn' | 'fail' | 'unknown';
   color: number;
+  guid: string;
 }
 
 export interface Issue {
