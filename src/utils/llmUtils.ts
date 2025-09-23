@@ -13,7 +13,7 @@ export async function mockLLMExplain(element: Element): Promise<string> {
   }`;
 }
 
-export async function LLMExplain(api_key: string, element: Element): Promise<string> {
+export async function LLMExplain(api_key: string, element: Element, resultsCheck: any = ""): Promise<string> {
   if (!api_key) {
     console.warn('No OpenAI API key provided, falling back to mock explanation');
     return mockLLMExplain(element);
@@ -37,6 +37,43 @@ export async function LLMExplain(api_key: string, element: Element): Promise<str
       context = 'No IDS data available for this element from BIM Portal.';
     }
 
+    
+    let validationContext = '';
+    if (resultsCheck && (resultsCheck.failed || resultsCheck.passed)) {
+      const elementId = element.id;
+      const elementGuid = element.guid;
+      
+      const failedSpecs = resultsCheck.failed ? resultsCheck.failed.filter((spec: any) => 
+        spec.guids.includes(elementId) || spec.guids.includes(elementGuid)
+      ) : [];
+      
+      const passedSpecs = resultsCheck.passed ? resultsCheck.passed.filter((spec: any) => 
+        spec.guids.includes(elementId) || spec.guids.includes(elementGuid)
+      ) : [];
+      
+      if (failedSpecs.length > 0 || passedSpecs.length > 0) {
+        validationContext = `\n\nIDS Validation Results for this Element:\n`;
+        
+        if (failedSpecs.length > 0) {
+          validationContext += `FAILED SPECIFICATIONS:\n`;
+          failedSpecs.forEach((spec: any) => {
+            validationContext += `- ${spec.name}: ${spec.description || 'No description'}\n`;
+          });
+        }
+        
+        if (passedSpecs.length > 0) {
+          validationContext += `PASSED SPECIFICATIONS:\n`;
+          passedSpecs.forEach((spec: any) => {
+            validationContext += `- ${spec.name}: ${spec.description || 'No description'}\n`;
+          });
+        }
+        
+        validationContext += `\nValidation Summary: ${failedSpecs.length} failed, ${passedSpecs.length} passed specifications for this element.\n`;
+      } else {
+        validationContext = '\n\nNo IDS validation results found for this element.\n';
+      }
+    }
+
     const prompt = `Du bist ein BIM-Experte für deutsche Bauvorschriften. Analysiere dieses BIM-Element:
 
                     Element Information:
@@ -45,7 +82,9 @@ export async function LLMExplain(api_key: string, element: Element): Promise<str
                     - Eigenschaften: ${JSON.stringify(element.props, null, 2)}
                     - Status: ${element.status}
 
-                    ${context}
+                    context: ${context}
+
+                    validationContext: ${validationContext}
 
                     Bitte erkläre:
                     1. Um was für einen Gegenstand haltet es sich?
@@ -179,7 +218,7 @@ function extractPropertyInfo(propertyXml: string): string | null {
   }
 }
 
-export async function getAILLMRecommendations(api_key: string, element: Element, analysis: string): Promise<AIRecommendation | null> {
+export async function getAILLMRecommendations(api_key: string, element: Element, analysis: string, resultsCheck: any = ""): Promise<AIRecommendation | null> {
     if (!element || !api_key) return null;
 
     const MAX_RETRIES = 10;
@@ -188,7 +227,42 @@ export async function getAILLMRecommendations(api_key: string, element: Element,
 
     // If analysis is empty or very short, fetch IDS data for context
     if (!analysis || analysis.trim().length < 20) {
-        contextInfo = await LLMExplain(api_key, element)
+        contextInfo = await LLMExplain(api_key, element, resultsCheck)
+    }
+    
+    // Add validation context for recommendations
+    let validationContext = '';
+    if (resultsCheck && (resultsCheck.failed || resultsCheck.passed)) {
+      const elementId = element.id;
+      const elementGuid = element.guid;
+      
+      const failedSpecs = resultsCheck.failed ? resultsCheck.failed.filter((spec: any) => 
+        spec.guids.includes(elementId) || spec.guids.includes(elementGuid)
+      ) : [];
+      
+      const passedSpecs = resultsCheck.passed ? resultsCheck.passed.filter((spec: any) => 
+        spec.guids.includes(elementId) || spec.guids.includes(elementGuid)
+      ) : [];
+      
+      if (failedSpecs.length > 0 || passedSpecs.length > 0) {
+        validationContext = `\n\nIDS Validation Results for this Element:\n`;
+        
+        if (failedSpecs.length > 0) {
+          validationContext += `FAILED SPECIFICATIONS:\n`;
+          failedSpecs.forEach((spec: any) => {
+            validationContext += `- ${spec.name}: ${spec.description || 'No description'}\n`;
+          });
+        }
+        
+        if (passedSpecs.length > 0) {
+          validationContext += `PASSED SPECIFICATIONS:\n`;
+          passedSpecs.forEach((spec: any) => {
+            validationContext += `- ${spec.name}: ${spec.description || 'No description'}\n`;
+          });
+        }
+        
+        validationContext += `\nValidation Summary: ${failedSpecs.length} failed, ${passedSpecs.length} passed specifications for this element.\n`;
+      }
     }
     
     const prompt = `Als BIM-Experte, analysiere dieses Element und generiere konkrete Lösungsvorschläge:
@@ -198,8 +272,10 @@ export async function getAILLMRecommendations(api_key: string, element: Element,
                     Status: ${element.status}
 
                     Kontext/Analyse: ${contextInfo}
+                    
+                    validationContext: ${validationContext}
 
-                    Generiere 2-4 konkrete Lösungsvorschläge im JSON Format:
+                    Generiere 2-4 konkrete Lösungsvorschläge im JSON Format. WEICH NICHT VON DIESEM OUTPUT AB. NUR JSON OUTPUT SONST NICHTS:
                     {
                     "suggestions": [
                         {

@@ -23,7 +23,8 @@ interface SidebarProps {
   onFixElement: (elementId: string) => void;
   onCreateAIIssue: (element: Element) => void;
   onAddElement: (element: Element[]) => void; // New prop to add element to the elements array
-  aiaRef: MutableRefObject<string | null>
+  aiaRef: MutableRefObject<string | null>;
+  resultsCheck: any;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -41,7 +42,8 @@ const Sidebar: React.FC<SidebarProps> = ({
   onFixElement,
   onCreateAIIssue,
   onAddElement, // New prop to add element to the elements array
-  aiaRef
+  aiaRef,
+  resultsCheck
 }) => {
   const [selectedElement, setSelectedElement] = useState<Element>(null);
   let seletecId = "nothing"
@@ -49,8 +51,49 @@ const Sidebar: React.FC<SidebarProps> = ({
   const lastPropertiesRef = useRef<any>(null);
   const { properties, components, viewport: viewportRef, update } = useProperties();
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (selectedElement && resultsCheck) {
+        let elementStatus: "pass" | "warn" | "fail" = "pass";
+        let elementColor = 0x00ff00;
+        
+        if (resultsCheck.failed) {
+          const failedSpecs = resultsCheck.failed.filter((spec: any) => 
+            spec.guids.includes(selectedElement.id)
+          );
+          
+          const failCount = failedSpecs.length;
+          
+          if (failCount >= 3) {
+            elementStatus = "fail";
+            elementColor = 0xff0000;
+          } else if (failCount > 0) {
+            elementStatus = "warn";
+            elementColor = 0xffaa00;
+          }
+        }
+        
+        // Update the selected element with new status
+        const updatedElement = {
+          ...selectedElement,
+          status: elementStatus,
+          color: elementColor
+        };
+        
+        setSelectedElement(updatedElement);
+        
+        // Also update the elements array
+        onAddElement([updatedElement]);
+      }
+    }, 100); // Run every 2 seconds
+
+    // Cleanup interval on component unmount
+    return () => clearInterval(interval);
+  }, [selectedElement, resultsCheck]); // No dependencies - runs once and continues every 2 seconds
+
   useEffect(() =>
-    update.current = () => {
+    // 
+     update.current = () => {
       const propertiesPanel = BUI.Component.create(() => {
         
         if (!properties.current) return BUI.html`<div>Click a model to view properties</div>`;
@@ -77,7 +120,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               if (properties.current._data && properties.current._data.length > 0) {
                 console.log("Data loaded after timeout!");
                 if (update.current) {
-                  update.current();
+                  update.current()
                 }
               }
             }, 100);
@@ -88,6 +131,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           const propertiesData = Object.create(null);
           let elementType = "IFC Element";
           let localId = selectedId;
+          let guid;
           console.log(properties.current._data)
           if (properties.current._data && properties.current._data.length > 0) {
             
@@ -115,7 +159,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                       elementType = propertyValue || elementType || "IFC Element";
                     }
                     
-                    if (propertyName === "LocalId" || propertyName === "LocalID" || propertyName === "Local ID" || propertyName === "id") {
+                    if (propertyName === "Guid") {
                       localId = propertyValue;
                     }
                   }
@@ -133,8 +177,9 @@ const Sidebar: React.FC<SidebarProps> = ({
                           elementType = nestedValue || elementType || "IFC Element";
                         }
                         
-                        if (nestedName === "LocalId" || nestedName === "LocalID" || nestedName === "Local ID" || nestedName === "id") {
+                        if (nestedName === "Guid") {
                           localId = nestedValue;
+                          guid = nestedValue
                         }
                       }
                       
@@ -158,16 +203,36 @@ const Sidebar: React.FC<SidebarProps> = ({
             });
           }
           
-          
           selectedId = localId
           
+          let elementStatus: "pass" | "warn" | "fail" = "pass";
+          let elementColor = 0x00ff00;
           
+          console.log("results:", resultsCheck)
+          
+          if (resultsCheck && resultsCheck.failed) {
+            const failedSpecs = resultsCheck.failed.filter((spec: any) => 
+              spec.guids.includes(localId)
+            );
+            
+            const failCount = failedSpecs.length;
+            console.log(`Element ${localId} has ${failCount} failed specifications`);
+            
+            if (failCount >= 3) {
+              elementStatus = "fail";
+              elementColor = 0xff0000;
+            } else if (failCount > 0) {
+              elementStatus = "warn";
+              elementColor = 0xffaa00;
+            }
+          }
+
           const new_element = {
             id: localId,
             type: elementType,
             props: propertiesData,
-            status: "pass" as const,
-            color: 0x00ff00,
+            status: elementStatus,
+            color: elementColor,
             guid: "0f025453-562a-489f-9e4c-58b675128f85",
           };
           
@@ -275,6 +340,18 @@ const Sidebar: React.FC<SidebarProps> = ({
                 )}
               </div>
             </div>
+          )}
+        </div>
+
+        <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #f3f4f6' }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: '#1f2937', marginBottom: 6 }}>Properties</div>
+          {selectedElement ? (
+            <div style={{ marginTop: 8, color: '#111827', fontSize: 14 }}>
+              <div>Type: <strong>{selectedElement.type}</strong></div>
+              <div>Status: <strong style={{ color: selectedElement.status === 'pass' ? '#16A34A' : selectedElement.status === 'warn' ? '#B45309' : '#C2410C' }}>{selectedElement.status}</strong></div>
+            </div>
+          ) : (
+            <div style={{ color: '#6B7280', marginTop: 8 }}>Select an element to view properties</div>
           )}
         </div>
 

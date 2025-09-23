@@ -6,6 +6,7 @@ interface IDSResult {
   pass: string[];
   fail: string[];
   warn?: string[];
+  results: any;
 }
 
 function escapeRegExp(str: string) {
@@ -29,6 +30,18 @@ export async function runIDSCheck(components: OBC.Components, idsXML: any): Prom
   const allFail: string[] = [];
   const allWarnings: string[] = [];
 
+  const specResults = {
+    passed: [] as Array<{name: string, description?: string, guids: string[]}>,
+    failed: [] as Array<{name: string, description?: string, guids: string[]}>,
+    summary: {
+      totalSpecs: specs.length,
+      passedSpecs: 0,
+      failedSpecs: 0,
+      totalPassedElements: 0,
+      totalFailedElements: 0
+    }
+  };
+
   for (const spec of specs) {
     try {
         const result = await spec.test(fragmentIds);
@@ -39,6 +52,26 @@ export async function runIDSCheck(components: OBC.Components, idsXML: any): Prom
 
         allPass.push(...passGuids);
         allFail.push(...failGuids);
+
+        if (failGuids.length > 0) {
+          specResults.failed.push({
+            name: spec.name,
+            description: spec.description,
+            guids: failGuids
+          });
+          specResults.summary.failedSpecs++;
+          specResults.summary.totalFailedElements += failGuids.length;
+        }
+
+        if (passGuids.length > 0) {
+          specResults.passed.push({
+            name: spec.name,
+            description: spec.description,
+            guids: passGuids
+          });
+          specResults.summary.passedSpecs++;
+          specResults.summary.totalPassedElements += passGuids.length;
+        }
     } catch (error) {
         console.error("Error testing spec", spec.name);
     }
@@ -63,7 +96,7 @@ export async function runIDSCheck(components: OBC.Components, idsXML: any): Prom
   console.log("Passed IDs:", allPass);
   console.log("Failed IDs:", allFail);
 
-  return { pass: allPass, fail: allFail };
+  return { pass: allPass, fail: allFail, results: specResults };
 }
 
 export async function logTest(components: OBC.Components, idsXML: string) {

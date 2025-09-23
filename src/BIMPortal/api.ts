@@ -1,6 +1,6 @@
 import type {paths} from "./types";
 
-const API_HOST = "https://via.bund.de/bmdv/bim-portal/edu/bim/"
+const API_HOST = "https://via.bund.de/bim/"
 
 // @ts-ignore
 export async function makeBIMPortalRequest<T extends keyof paths, M extends "get" | "post">(path: T, method: M = "get", guid: string | undefined = undefined, apiHost: string = API_HOST, body: string | undefined = undefined, bearer: string | undefined = undefined): Promise<unknown> {
@@ -14,8 +14,8 @@ export async function makeBIMPortalRequest<T extends keyof paths, M extends "get
 
     const response = await fetch(new URL(fixedPath, apiHost), {
         method, headers: {
-            "Content-Type": method === "post" ? "application/json" : undefined,
-            authorization: bearer ? `Bearer ${bearer}` : undefined,
+            //"Content-Type": method === "post" ? "application/json" : undefined,
+            //authorization: bearer ? `Bearer ${bearer}` : undefined,
         },
         body
     })
