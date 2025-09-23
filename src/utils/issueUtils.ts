@@ -85,17 +85,15 @@ export async function submitBCFToJira(bcfIssue: BCFIssue, config: JiraConfig): P
     const topic = bcfIssue.markup.topic;
     const comment = bcfIssue.markup.comments[0];
     
-    // Prepare issue data for the backend
     const issueData = {
       summary: topic.title,
       description: `${comment.comment}\n\nTechnical Details:\n${topic.description || 'No additional details provided.'}\n\nBCF Reference: ${topic.guid}`,
-      issue_type: 'Task', // You can map this based on topic.topic_type
+      issue_type: 'Task',
       priority: topic.priority || 'Medium',
       labels: topic.labels || ['BIM', 'BCF'],
       bcf_reference: topic.guid
     };
     
-    // Call the Flask backend
     const backendUrl = 'http://localhost:5001/api/jira/issue';
     
     console.log('Sending to Flask backend:', backendUrl);
@@ -336,7 +334,7 @@ export async function submitBCFIssue(bcfIssue: BCFIssue, projectId: string = "de
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer YOUR_API_TOKEN' // Replace with actual auth
+        'Authorization': 'Bearer YOUR_API_TOKEN'
       },
       body: JSON.stringify({
         bcf_version: "2.1",
