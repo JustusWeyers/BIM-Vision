@@ -1,4 +1,5 @@
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 const path = require('path');
 
 module.exports = {
@@ -29,7 +30,7 @@ module.exports = {
       },
       {
         test: /\.css$/,
-        use: ['style-loader', 'css-loader']
+        use: ['style-loader', 'css-loader', 'postcss-loader'],
       }
     ]
   },
@@ -37,6 +38,11 @@ module.exports = {
     new HtmlWebpackPlugin({
       template: './public/index.html',
       filename: 'index.html'
+    }),
+    new CopyWebpackPlugin({
+      patterns: [
+        { from: 'public/tasks.json', to: 'tasks.json' }
+      ]
     })
   ],
   devServer: {

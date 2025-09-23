@@ -9,7 +9,7 @@ export const useAPI = () => useContext <{
     login: (mail: string, password: string) => void,
     logout: () => void,
     makeAuthenticatedAPIRequest:
-        <T extends keyof paths, M extends "get" | "post">(path: T, method?: M, guid?: (string | undefined), apiHost?: string, body?: (string | undefined)) => Promise<object | null>
+        <T extends keyof paths, M extends "get" | "post">(path: T, method?: M, guid?: (string | undefined), apiHost?: string, body?: (string | undefined)) => Promise<unknown>
 }>;
 
 export const
@@ -20,7 +20,7 @@ export const
         let interval = 0;
 
         // @ts-ignore
-        function makeAuthenticatedAPIRequest<T extends keyof paths, M extends "get" | "post">(path: T, method: M = "get", guid: string | undefined = undefined, apiHost: string = API_HOST, body: string | undefined = undefined): Promise<object | null> {
+        function makeAuthenticatedAPIRequest<T extends keyof paths, M extends "get" | "post">(path: T, method: M = "get", guid: string | undefined = undefined, apiHost: string = API_HOST, body: string | undefined = undefined): Promise<unknown> {
             return makeBIMPortalRequest(path, method, guid, method, body, bearer);
         }
 
