@@ -6,11 +6,12 @@ const APIContext = createContext(null);
 
 // Hook to use APIContext
 export const useAPI = () => useContext <{
+    authenticated: boolean,
     login: (mail: string, password: string) => void,
     logout: () => void,
     makeAuthenticatedAPIRequest:
         <T extends keyof paths, M extends "get" | "post">(path: T, method?: M, guid?: (string | undefined), apiHost?: string, body?: (string | undefined)) => Promise<unknown>
-}>;
+}>(APIContext);
 
 export const
     AuthProvider = ({children}) => {
@@ -18,6 +19,8 @@ export const
         let bearer: string | null = null;
         let refreshToken: string | null = null;
         let interval = 0;
+
+        let [authenticated, setAuthenticated] = useState(false);
 
         // @ts-ignore
         function makeAuthenticatedAPIRequest<T extends keyof paths, M extends "get" | "post">(path: T, method: M = "get", guid: string | undefined = undefined, apiHost: string = API_HOST, body: string | undefined = undefined): Promise<unknown> {
@@ -36,6 +39,7 @@ export const
                 if (!result) return;
                 bearer = result.token;
                 refreshToken = result.refreshToken;
+                setAuthenticated(true);
                 if (interval) window.clearInterval(interval);
                 interval = window.setInterval(() => refresh(), 3600 * 5)
             })
@@ -57,12 +61,13 @@ export const
 
         const logout = () => {
             if (!bearer) return;
+            setAuthenticated(false);
             makeAuthenticatedAPIRequest("/infrastruktur/api/v1/public/auth/logout", "post")
             if (!interval) return;
             window.clearInterval(interval);
         };
 
-        const value = {login, logout, makeAuthenticatedAPIRequest}
+        const value = {login, logout, makeAuthenticatedAPIRequest, authenticated}
 
         return (
             <APIContext.Provider {...{value}}>

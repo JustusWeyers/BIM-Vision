@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, {MutableRefObject, useEffect} from 'react';
 import { Element, Issue, AIRecommendation } from '../types';
 import { IconAlert, IconBrain, IconCheck, IconDatabase, IconMessage, IconSend, IconTool } from '../Icons';
 import { buiGridContainerRef } from './IFCViewer';
@@ -6,6 +6,7 @@ import { useProperties } from '../utils/PropertiesContext';
 import * as BUI from "@thatopen/ui";
 import * as BUIC from "@thatopen/ui-obc";
 import { fileInputRef } from './IFCViewer';
+import BIMPortalSelect from "./BIMPortalSelect";
 interface SidebarProps {
   selectedId: string | null;
   elements: Element[];
@@ -20,6 +21,7 @@ interface SidebarProps {
   onApplyAISuggestion: (property: string, value: string | number) => void;
   onFixElement: (elementId: string) => void;
   onCreateAIIssue: () => void;
+  selectedBIMPortalAIAguidRef: MutableRefObject<string | null>;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -35,7 +37,8 @@ const Sidebar: React.FC<SidebarProps> = ({
   onGetAIRecommendations,
   onApplyAISuggestion,
   onFixElement,
-  onCreateAIIssue
+  onCreateAIIssue,
+  selectedBIMPortalAIAguidRef,
 }) => {
   const selectedElement = selectedId ? elements.find((e) => e.id === selectedId) : null;
 
@@ -118,18 +121,18 @@ const Sidebar: React.FC<SidebarProps> = ({
                 }} style={{ background: '#f59e0b', color: 'white', borderRadius: 4, padding: '6px 10px', display: 'flex', gap: 4, alignItems: 'center', fontWeight: 500, fontSize: 12, border: 'none', cursor: 'pointer' }}>
                   <IconAlert width={12} height={12} /> Issue
                 </button>
-                <button onClick={onCreateAIIssue} disabled={loadingAIIssue} style={{ 
-                  background: loadingAIIssue ? '#94a3b8' : '#06b6d4', 
-                  color: 'white', 
-                  borderRadius: 4, 
-                  padding: '6px 10px', 
-                  display: 'flex', 
-                  gap: 4, 
-                  alignItems: 'center', 
-                  fontWeight: 500, 
-                  fontSize: 12, 
-                  border: 'none', 
-                  cursor: loadingAIIssue ? 'not-allowed' : 'pointer' 
+                <button onClick={onCreateAIIssue} disabled={loadingAIIssue} style={{
+                  background: loadingAIIssue ? '#94a3b8' : '#06b6d4',
+                  color: 'white',
+                  borderRadius: 4,
+                  padding: '6px 10px',
+                  display: 'flex',
+                  gap: 4,
+                  alignItems: 'center',
+                  fontWeight: 500,
+                  fontSize: 12,
+                  border: 'none',
+                  cursor: loadingAIIssue ? 'not-allowed' : 'pointer'
                 }}>
                   <IconBrain width={12} height={12} /> {loadingAIIssue ? 'Creating...' : 'AI Issue'}
                 </button>
@@ -240,7 +243,9 @@ const Sidebar: React.FC<SidebarProps> = ({
           </div>
         )}
       </div>
-      
+
+        <BIMPortalSelect {...{selectedBIMPortalAIAguidRef}} />
+
     </div>
   );
 };
