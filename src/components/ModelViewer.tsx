@@ -1,14 +1,16 @@
 import {FC} from 'react';
 import { IconUpload, IconCheck } from '../Icons';
+import { Element } from '../types';
 import IFCViewer from './IFCViewer';
 import { fileInputRef } from './IFCViewer';
 interface ModelViewerProps {
   onRunRuleCheck: () => void;
   running: boolean;
   onExport: () => void;
+  setElementsIFC: (elements: Element[]) => void;
 }
 
-const ModelViewer: FC<ModelViewerProps> = ({ onRunRuleCheck, running, onExport }) => {
+const ModelViewer: FC<ModelViewerProps> = ({ onRunRuleCheck, running, onExport, setElementsIFC }) => {
   return (
     <div style={{ background: 'white', padding: 16, borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: '1px solid #e5e7eb' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
@@ -29,7 +31,7 @@ const ModelViewer: FC<ModelViewerProps> = ({ onRunRuleCheck, running, onExport }
         </div>
       </div>
 
-      <IFCViewer />
+      <IFCViewer setElementsIFC={setElementsIFC}/>
 
       <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'center' }}>
         <div style={{ padding: '4px 8px', borderRadius: 4, background: '#dcfce7', color: '#16a34a', fontWeight: 500, fontSize: 11 }}> Pass</div>

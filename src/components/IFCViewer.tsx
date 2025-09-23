@@ -1,15 +1,20 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, {FC, useEffect, useRef, useState } from "react";
 import * as OBC from "@thatopen/components";
 import * as OBCF from "@thatopen/components-front";
 import * as BUIC from "@thatopen/ui-obc";
 import * as THREE from "three";
 import * as BUI from "@thatopen/ui";
 import { render } from "react-dom";
+import { Element } from '../types';
 import { useProperties } from "../utils/PropertiesContext";
+
+interface IFCViewerProps {
+  setElementsIFC: (elements: Element[]) => void;
+}
 
 export const buiGridContainerRef = React.createRef<HTMLDivElement>();
 export const fileInputRef = React.createRef<HTMLInputElement>();
-const IFCViewer = () => {
+const IFCViewer: FC<IFCViewerProps> = ({ setElementsIFC }) => {
     const fileRef = useRef<File | null>(null);
     const worldRef = useRef<OBC.World>(null);
     const modelIDRef = useRef<number | null>(null);
