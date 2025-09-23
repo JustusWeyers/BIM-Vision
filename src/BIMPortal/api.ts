@@ -12,6 +12,12 @@ export async function makeBIMPortalRequest<T extends keyof paths, M extends "get
 
     fixedPath = `.${fixedPath ?? path}`;
 
+    let headers: Record<string, string> = {};
+    if (method === "post")
+        headers = Object.assign(headers, { "Content-Type": "application/json" });
+    if (bearer)
+        headers = Object.assign(headers, {"Authorization": "Bearer " + bearer});
+
     const response = await fetch(new URL(fixedPath, apiHost), {
         method, headers: {
             //"Content-Type": method === "post" ? "application/json" : undefined,
