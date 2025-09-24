@@ -4,7 +4,7 @@ A React-based  (BIM) IDS visualizer with AI helper integration. Directly attache
 
 ## Features
 
-- **3D Viewer**: Interactive IFC viewer with rotating building elements
+- **3D Viewer**: Interactive IFC viewer with property insights and highlighting of indivdual elements
 - **Rule Checking**: Automated rule validation for building elements via IDS
 - **Issue Tracking**: Create and manage issues tied to specific building elements. Create BCF Files with LLM and connect to Jira for tocket creation trough API
 - **LLM Integration**: AI explanations for rule violations and element properties and provides fixing assistance
