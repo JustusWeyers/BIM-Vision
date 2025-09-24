@@ -4,11 +4,11 @@ A React-based  (BIM) IDS visualizer with AI helper integration. Directly attache
 
 ## Features
 
-- **3D Viewer**: Interactive Three.js-based viewer with rotating building elements
+- **3D Viewer**: Interactive IFC viewer with rotating building elements
 - **Rule Checking**: Automated rule validation for building elements via IDS
-- **Issue Tracking**: Create and manage issues tied to specific building elements
-- **LLM Integration**: Mock AI explanations for rule violations and element properties and provides fixing assistance
-- **Interactive Selection**: Click on 3D elements to view their properties
+- **Issue Tracking**: Create and manage issues tied to specific building elements. Create BCF Files with LLM and connect to Jira for tocket creation trough API
+- **LLM Integration**: AI explanations for rule violations and element properties and provides fixing assistance
+- **Interactive Selection**: Click on 3D elements to view their properties and status
 
 ### Integrations
 - OpenAI API (or compatible) for AI query
@@ -42,11 +42,11 @@ The application will open in your browser at `http://localhost:8080`.
 
 ## Usage
 
-1. **View the 3D Scene**: The viewer shows a rotating scene with mock building elements (walls, doors, columns)
-2. **Run IDS Check**: Click "Run Rule Check" to validate elements against building rules
+1. **View the 3D Scene**: The viewer shows the uploaded IFC and can be interacted with trough clicking on each IFC Element
+2. **Run IDS Check**: Click "Run Rule Check" to validate elements against building rules. Statuses are highlighted on each ifc element trough coloring
 3. **Select Elements**: Click on any 3D element to select it and view its properties
-4. **Get AI Explanations**: Select an element and click "Explain (LLM)" for AI-generated insights
-5. **Create Issues**: Report problems by clicking "Create Issue" for selected elements
+4. **Get AI Explanations and Recommendations**: Select an element and click "Explain (LLM)" for AI-generated insights or click "AI Fix" for quick fixes
+5. **Create Issues**: Report problems by clicking "Create Issue" for selected elements and create bcf files. Ticket Generation for Jira trough API
 
 ## Rule Validation
 
