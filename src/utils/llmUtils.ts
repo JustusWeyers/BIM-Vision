@@ -1,5 +1,20 @@
 import { makeBIMPortalRequest } from '../BIMPortal/api';
 import { Element, AIRecommendation, Issue } from '../types';
+import { backendFetch } from './auth';
+
+async function callLLM(messages: { role: string; content: string }[], maxTokens = 500, temperature = 0.3): Promise<string | null> {
+  try {
+    const res = await backendFetch('/api/llm/chat', {
+      method: 'POST',
+      body: JSON.stringify({ messages, max_tokens: maxTokens, temperature })
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content ?? null;
+  } catch {
+    return null;
+  }
+}
 
 export async function mockLLMExplain(element: Element): Promise<string> {
   if (!element) return "Element not found.";
@@ -14,118 +29,46 @@ export async function mockLLMExplain(element: Element): Promise<string> {
 }
 
 export async function LLMExplain(api_key: string, element: Element, resultsCheck: any = ""): Promise<string> {
-  if (!api_key) {
-    console.warn('No OpenAI API key provided, falling back to mock explanation');
-    return mockLLMExplain(element);
-  }
-
   try {
     const idsData = await makeBIMPortalRequest("/aia/api/v1/public/aiaProject/{guid}/IDS", "get", element.guid);
-    
-    console.log('IDS Data received:', idsData); 
-    
+
     let context = '';
-    
     if (idsData) {
-      if (typeof idsData === 'string') {
-        context = parseIDSForElement(idsData, element.type);
-        console.log('Parsed IDS requirements:', context);
-      } else if (typeof idsData === 'object') {
-        context = `IDS Requirements (Structured):\n${JSON.stringify(idsData, null, 2)}`;
-      }
+      context = typeof idsData === 'string'
+        ? parseIDSForElement(idsData, element.type)
+        : `IDS Requirements (Structured):\n${JSON.stringify(idsData, null, 2)}`;
     } else {
       context = 'No IDS data available for this element from BIM Portal.';
     }
 
-    
     let validationContext = '';
     if (resultsCheck && (resultsCheck.failed || resultsCheck.passed)) {
-      const elementId = element.id;
-      const elementGuid = element.guid;
-      
-      const failedSpecs = resultsCheck.failed ? resultsCheck.failed.filter((spec: any) => 
-        spec.guids.includes(elementId) || spec.guids.includes(elementGuid)
-      ) : [];
-      
-      const passedSpecs = resultsCheck.passed ? resultsCheck.passed.filter((spec: any) => 
-        spec.guids.includes(elementId) || spec.guids.includes(elementGuid)
-      ) : [];
-      
+      const failedSpecs = (resultsCheck.failed ?? []).filter((s: any) => s.guids.includes(element.id) || s.guids.includes(element.guid));
+      const passedSpecs = (resultsCheck.passed ?? []).filter((s: any) => s.guids.includes(element.id) || s.guids.includes(element.guid));
       if (failedSpecs.length > 0 || passedSpecs.length > 0) {
-        validationContext = `\n\nIDS Validation Results for this Element:\n`;
-        
-        if (failedSpecs.length > 0) {
-          validationContext += `FAILED SPECIFICATIONS:\n`;
-          failedSpecs.forEach((spec: any) => {
-            validationContext += `- ${spec.name}: ${spec.description || 'No description'}\n`;
-          });
-        }
-        
-        if (passedSpecs.length > 0) {
-          validationContext += `PASSED SPECIFICATIONS:\n`;
-          passedSpecs.forEach((spec: any) => {
-            validationContext += `- ${spec.name}: ${spec.description || 'No description'}\n`;
-          });
-        }
-        
-        validationContext += `\nValidation Summary: ${failedSpecs.length} failed, ${passedSpecs.length} passed specifications for this element.\n`;
-      } else {
-        validationContext = '\n\nNo IDS validation results found for this element.\n';
+        validationContext = '\n\nIDS Validation Results:\n';
+        if (failedSpecs.length > 0) validationContext += `FAILED:\n${failedSpecs.map((s: any) => `- ${s.name}`).join('\n')}\n`;
+        if (passedSpecs.length > 0) validationContext += `PASSED:\n${passedSpecs.map((s: any) => `- ${s.name}`).join('\n')}\n`;
+        validationContext += `Summary: ${failedSpecs.length} failed, ${passedSpecs.length} passed.\n`;
       }
     }
 
     const prompt = `Du bist ein BIM-Experte für deutsche Bauvorschriften. Analysiere dieses BIM-Element:
+Element: ${element.id} (${element.type}), Status: ${element.status}
+Eigenschaften: ${JSON.stringify(element.props, null, 2)}
+${context}${validationContext}
+Erkläre: 1. Was ist das Element? 2. Was bedeutet der Status? 3. Welche IDS-Anforderungen gibt es? 4. Was fehlt?
+Antworte auf Deutsch. Max. 50 Wörter.`;
 
-                    Element Information:
-                    - ID: ${element.id}
-                    - Typ: ${element.type}
-                    - Eigenschaften: ${JSON.stringify(element.props, null, 2)}
-                    - Status: ${element.status}
+    const result = await callLLM([
+      { role: 'system', content: 'Du bist ein deutscher BIM-Experte mit Spezialisierung auf Bauvorschriften und IDS-Analyse.' },
+      { role: 'user', content: prompt }
+    ]);
 
-                    context: ${context}
-
-                    validationContext: ${validationContext}
-
-                    Bitte erkläre:
-                    1. Um was für einen Gegenstand haltet es sich?
-                    2. Was bedeutet der aktuelle Status des Elements?
-                    3. Welche Anforderungen ergeben sich aus den IDS-Daten?
-                    4. Welche Eigenschaften fehlen oder sind falsch?
-
-                    Antworte auf Deutsch und beziehe dich auf deutsche Baustandards. Gib eine detaillierte Analyse. Limitier deine Antwort auf maximal 50 Wörter!`;
-
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${api_key}`
-      },
-      body: JSON.stringify({
-        model: 'gpt-4',
-        messages: [
-          {
-            role: 'system',
-            content: 'Du bist ein deutscher BIM-Experte mit Spezialisierung auf Bauvorschriften und IDS-Analyse. Gib detaillierte technische Erklärungen auf Deutsch.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        max_tokens: 500,
-        temperature: 0.3
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    return data.choices[0]?.message?.content || 'Keine Antwort generiert';
-
+    return result ?? await mockLLMExplain(element);
   } catch (error) {
     console.error('LLM explanation failed:', error);
+    return mockLLMExplain(element);
   }
 }
 
@@ -219,136 +162,48 @@ function extractPropertyInfo(propertyXml: string): string | null {
 }
 
 export async function getAILLMRecommendations(api_key: string, element: Element, analysis: string, resultsCheck: any = ""): Promise<AIRecommendation | null> {
-    if (!element || !api_key) return null;
+  if (!element) return null;
 
-    const MAX_RETRIES = 10;
-    
-    let contextInfo = analysis;
+  let contextInfo = analysis;
+  if (!analysis || analysis.trim().length < 20) {
+    contextInfo = await LLMExplain(api_key, element, resultsCheck);
+  }
 
-    // If analysis is empty or very short, fetch IDS data for context
-    if (!analysis || analysis.trim().length < 20) {
-        contextInfo = await LLMExplain(api_key, element, resultsCheck)
+  let validationContext = '';
+  if (resultsCheck && (resultsCheck.failed || resultsCheck.passed)) {
+    const failedSpecs = (resultsCheck.failed ?? []).filter((s: any) => s.guids.includes(element.id) || s.guids.includes(element.guid));
+    const passedSpecs = (resultsCheck.passed ?? []).filter((s: any) => s.guids.includes(element.id) || s.guids.includes(element.guid));
+    if (failedSpecs.length > 0 || passedSpecs.length > 0) {
+      validationContext = '\n\nIDS Validation Results:\n';
+      if (failedSpecs.length > 0) validationContext += `FAILED:\n${failedSpecs.map((s: any) => `- ${s.name}`).join('\n')}\n`;
+      if (passedSpecs.length > 0) validationContext += `PASSED:\n${passedSpecs.map((s: any) => `- ${s.name}`).join('\n')}\n`;
     }
-    
-    // Add validation context for recommendations
-    let validationContext = '';
-    if (resultsCheck && (resultsCheck.failed || resultsCheck.passed)) {
-      const elementId = element.id;
-      const elementGuid = element.guid;
-      
-      const failedSpecs = resultsCheck.failed ? resultsCheck.failed.filter((spec: any) => 
-        spec.guids.includes(elementId) || spec.guids.includes(elementGuid)
-      ) : [];
-      
-      const passedSpecs = resultsCheck.passed ? resultsCheck.passed.filter((spec: any) => 
-        spec.guids.includes(elementId) || spec.guids.includes(elementGuid)
-      ) : [];
-      
-      if (failedSpecs.length > 0 || passedSpecs.length > 0) {
-        validationContext = `\n\nIDS Validation Results for this Element:\n`;
-        
-        if (failedSpecs.length > 0) {
-          validationContext += `FAILED SPECIFICATIONS:\n`;
-          failedSpecs.forEach((spec: any) => {
-            validationContext += `- ${spec.name}: ${spec.description || 'No description'}\n`;
-          });
-        }
-        
-        if (passedSpecs.length > 0) {
-          validationContext += `PASSED SPECIFICATIONS:\n`;
-          passedSpecs.forEach((spec: any) => {
-            validationContext += `- ${spec.name}: ${spec.description || 'No description'}\n`;
-          });
-        }
-        
-        validationContext += `\nValidation Summary: ${failedSpecs.length} failed, ${passedSpecs.length} passed specifications for this element.\n`;
-      }
+  }
+
+  const prompt = `Als BIM-Experte generiere 2-4 Lösungsvorschläge für dieses Element als JSON. NUR JSON, KEIN ANDERER TEXT:
+Element: ${element.id} (${element.type}), Status: ${element.status}
+Eigenschaften: ${JSON.stringify(element.props)}
+Kontext: ${contextInfo}${validationContext}
+{"suggestions":[{"property":"eigenschaftsname","label":"Deutsche Beschreibung","options":[{"value":"wert1","reason":"Begründung"}]}]}`;
+
+  const MAX_RETRIES = 5;
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    const content = await callLLM([
+      { role: 'system', content: 'Du bist ein deutscher BIM-Experte. Antworte nur mit gültigem JSON ohne zusätzlichen Text.' },
+      { role: 'user', content: prompt }
+    ], 300, 0.2);
+
+    if (!content) continue;
+
+    try {
+      const parsed = JSON.parse(content);
+      return { analysis: contextInfo, suggestions: parsed.suggestions || [] };
+    } catch {
+      console.warn(`JSON parse fehlgeschlagen, Versuch ${attempt}`);
     }
-    
-    const prompt = `Als BIM-Experte, analysiere dieses Element und generiere konkrete Lösungsvorschläge:
+  }
 
-                    Element: ${element.id} (${element.type})
-                    Aktuelle Eigenschaften: ${JSON.stringify(element.props)}
-                    Status: ${element.status}
-
-                    Kontext/Analyse: ${contextInfo}
-                    
-                    validationContext: ${validationContext}
-
-                    Generiere 2-4 konkrete Lösungsvorschläge im JSON Format. WEICH NICHT VON DIESEM OUTPUT AB. NUR JSON OUTPUT SONST NICHTS:
-                    {
-                    "suggestions": [
-                        {
-                        "property": "eigenschaftsname",
-                        "label": "Deutsche Beschreibung",
-                        "options": [
-                            {"value": "wert1", "reason": "Kurze Begründung"},
-                            {"value": "wert2", "reason": "Kurze Begründung"}
-                        ]
-                        }
-                    ]
-                    }
-
-                    Fokussiere auf fehlende/falsche Eigenschaften. Verwende deutsche Begriffe.`;
-
-    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-        try {
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${api_key}`
-                },
-                body: JSON.stringify({
-                    model: 'gpt-3.5-turbo',
-                    messages: [
-                        {
-                            role: 'system',
-                            content: 'Du bist ein deutscher BIM-Experte. Antworte nur mit gültigem JSON ohne zusätzlichen Text.'
-                        },
-                        {
-                            role: 'user',
-                            content: prompt
-                        }
-                    ],
-                    max_tokens: 300,
-                    temperature: 0.2
-                })
-            });
-
-            if (!response.ok) {
-                console.error('OpenAI API error for recommendations:', response.status);
-                continue; // Try again
-            }
-
-            const data = await response.json();
-            const content = data.choices[0]?.message?.content;
-            
-            if (!content) {
-                continue; // Try again
-            }
-
-            try {
-                console.log(content)
-                const parsed = JSON.parse(content);
-                return {
-                    analysis: contextInfo,
-                    suggestions: parsed.suggestions || []
-                };
-            } catch (parseError) {
-                console.warn(`Failed to parse LLM JSON response on attempt ${attempt}, trying again...`);
-                // Continue to next attempt
-            }
-
-        } catch (error) {
-            console.error(`LLM request failed on attempt ${attempt}:`, error);
-            // Continue to next attempt
-        }
-    }
-    
-    // All attempts failed
-    console.warn('All LLM attempts failed, returning null');
-    return null;
+  return null;
 }
 
 export async function getAIFixRecommendations(element: Element): Promise<AIRecommendation | null> {

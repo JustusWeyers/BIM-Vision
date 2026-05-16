@@ -16,6 +16,16 @@ out/
 .env.development.local
 .env.test.local
 .env.production.local
+config.env
+
+# Python
+*.pyc
+__pycache__/
+*.db
+.env/
+myenv/
+venv/
+.venv/
 
 # IDE and editor files
 .vscode/

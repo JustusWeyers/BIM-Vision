@@ -283,7 +283,8 @@ const Sidebar: React.FC<SidebarProps> = ({
         },
       };
 
-      const propertiesContainer = document.getElementById("properties-container")
+      const propertiesContainer = document.getElementById("properties-container");
+      if (!propertiesContainer) return;
 
       propertiesContainer.innerHTML = "";
 
