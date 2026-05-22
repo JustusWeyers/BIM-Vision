@@ -2,6 +2,7 @@ import { useState } from "react";
 import { login, register } from "../utils/auth";
 import { IconCube } from "../Icons";
 import PrivacyPolicy from "./PrivacyPolicy";
+import Impressum from "./Impressum";
 
 interface Props {
   onLogin: () => void;
@@ -11,10 +12,12 @@ const LoginPage: React.FC<Props> = ({ onLogin }) => {
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [inviteCode, setInviteCode] = useState('');
   const [consent, setConsent] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
+  const [showImpressum, setShowImpressum] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,7 +31,7 @@ const LoginPage: React.FC<Props> = ({ onLogin }) => {
     setLoading(true);
     const result = mode === 'login'
       ? await login(username, password)
-      : await register(username, password);
+      : await register(username, password, inviteCode);
     setLoading(false);
 
     if (result.success) {
@@ -41,6 +44,7 @@ const LoginPage: React.FC<Props> = ({ onLogin }) => {
   return (
     <>
       {showPrivacy && <PrivacyPolicy onClose={() => setShowPrivacy(false)} />}
+      {showImpressum && <Impressum onClose={() => setShowImpressum(false)} />}
 
       <div style={{
         minHeight: '100vh', background: '#f8fafc',
@@ -104,6 +108,23 @@ const LoginPage: React.FC<Props> = ({ onLogin }) => {
             </div>
 
             {mode === 'register' && (
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: '#374151', marginBottom: 4 }}>
+                  Einladungscode
+                </label>
+                <input
+                  type="text" value={inviteCode}
+                  onChange={e => setInviteCode(e.target.value)} required
+                  style={{
+                    width: '100%', padding: '8px 10px', borderRadius: 6,
+                    border: '1px solid #d1d5db', fontSize: 14, color: '#1f2937',
+                    outline: 'none', boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+            )}
+
+            {mode === 'register' && (
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 20 }}>
                 <input
                   type="checkbox" id="consent"
@@ -158,6 +179,12 @@ const LoginPage: React.FC<Props> = ({ onLogin }) => {
             </span>
           </div>
 
+        </div>
+
+        <div style={{ textAlign: 'center', marginTop: 16, fontSize: 11, color: '#9ca3af' }}>
+          <span onClick={() => setShowImpressum(true)} style={{ cursor: 'pointer', textDecoration: 'underline' }}>Impressum</span>
+          {' · '}
+          <span onClick={() => setShowPrivacy(true)} style={{ cursor: 'pointer', textDecoration: 'underline' }}>Datenschutz</span>
         </div>
       </div>
     </>

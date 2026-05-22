@@ -40,6 +40,7 @@ JIRA_CONFIG = {
 
 MISTRAL_API_KEY = os.environ.get('MISTRAL_API_KEY', '')
 MISTRAL_API_URL = 'https://api.mistral.ai/v1/chat/completions'
+INVITE_CODE = os.environ.get('INVITE_CODE', '')
 
 
 # --- Modelle ---
@@ -66,6 +67,9 @@ def register():
     data = request.get_json()
     if not data or not data.get('username') or not data.get('password'):
         return jsonify({'success': False, 'error': 'Benutzername und Passwort erforderlich'}), 400
+
+    if INVITE_CODE and data.get('invite_code') != INVITE_CODE:
+        return jsonify({'success': False, 'error': 'Ungültiger Einladungscode'}), 403
 
     if not re.match(r'^[a-zA-Z0-9_]{3,30}$', data['username']):
         return jsonify({'success': False, 'error': 'Benutzername: 3-30 Zeichen, nur Buchstaben, Zahlen und _'}), 400

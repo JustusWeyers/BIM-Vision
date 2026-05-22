@@ -26,11 +26,11 @@ export async function login(username: string, password: string): Promise<{ succe
   return { success: false, error: data.error || 'Login fehlgeschlagen' };
 }
 
-export async function register(username: string, password: string): Promise<{ success: boolean; error?: string }> {
+export async function register(username: string, password: string, invite_code: string): Promise<{ success: boolean; error?: string }> {
   const res = await fetch(`${BACKEND_URL}/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password })
+    body: JSON.stringify({ username, password, invite_code })
   });
   const data = await res.json();
   if (data.success && data.token) {
