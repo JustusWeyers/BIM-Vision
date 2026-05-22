@@ -9,6 +9,7 @@ from flask_limiter.util import get_remote_address
 import requests
 import json
 import os
+import re
 import bcrypt
 from base64 import b64encode
 from datetime import timedelta
@@ -44,7 +45,7 @@ MISTRAL_API_URL = 'https://api.mistral.ai/v1/chat/completions'
 # --- Modelle ---
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(120), unique=True, nullable=False)
+    username = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(200), nullable=False)
 
     def set_password(self, password):
@@ -63,34 +64,43 @@ with app.app_context():
 @limiter.limit("5 per minute")
 def register():
     data = request.get_json()
-    if not data or not data.get('email') or not data.get('password'):
-        return jsonify({'success': False, 'error': 'Email und Passwort erforderlich'}), 400
+    if not data or not data.get('username') or not data.get('password'):
+        return jsonify({'success': False, 'error': 'Benutzername und Passwort erforderlich'}), 400
 
-    if User.query.filter_by(email=data['email']).first():
-        return jsonify({'success': False, 'error': 'Email bereits registriert'}), 409
+    if not re.match(r'^[a-zA-Z0-9_]{3,30}$', data['username']):
+        return jsonify({'success': False, 'error': 'Benutzername: 3-30 Zeichen, nur Buchstaben, Zahlen und _'}), 400
 
-    user = User(email=data['email'])
+    if len(data['password']) < 8:
+        return jsonify({'success': False, 'error': 'Passwort muss mindestens 8 Zeichen haben'}), 400
+
+    if User.query.filter_by(username=data['username']).first():
+        return jsonify({'success': False, 'error': 'Benutzername bereits vergeben'}), 409
+
+    if User.query.count() >= 100:
+        return jsonify({'success': False, 'error': 'Maximale Nutzerzahl erreicht'}), 403
+
+    user = User(username=data['username'])
     user.set_password(data['password'])
     db.session.add(user)
     db.session.commit()
 
     token = create_access_token(identity=str(user.id))
-    return jsonify({'success': True, 'token': token, 'email': user.email}), 201
+    return jsonify({'success': True, 'token': token, 'username': user.username}), 201
 
 
 @app.route('/auth/login', methods=['POST'])
 @limiter.limit("10 per minute")
 def login():
     data = request.get_json()
-    if not data or not data.get('email') or not data.get('password'):
-        return jsonify({'success': False, 'error': 'Email und Passwort erforderlich'}), 400
+    if not data or not data.get('username') or not data.get('password'):
+        return jsonify({'success': False, 'error': 'Benutzername und Passwort erforderlich'}), 400
 
-    user = User.query.filter_by(email=data['email']).first()
+    user = User.query.filter_by(username=data['username']).first()
     if not user or not user.check_password(data['password']):
         return jsonify({'success': False, 'error': 'Ungültige Anmeldedaten'}), 401
 
     token = create_access_token(identity=str(user.id))
-    return jsonify({'success': True, 'token': token, 'email': user.email}), 200
+    return jsonify({'success': True, 'token': token, 'username': user.username}), 200
 
 
 @app.route('/auth/account', methods=['DELETE'])
@@ -112,7 +122,7 @@ def me():
     user = User.query.get(int(user_id))
     if not user:
         return jsonify({'success': False, 'error': 'Nutzer nicht gefunden'}), 404
-    return jsonify({'success': True, 'email': user.email, 'id': user.id}), 200
+    return jsonify({'success': True, 'username': user.username, 'id': user.id}), 200
 
 
 # --- Mistral LLM Endpoint ---

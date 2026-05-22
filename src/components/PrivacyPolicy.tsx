@@ -41,14 +41,14 @@ const PrivacyPolicy: React.FC<Props> = ({ onClose }) => (
 
         <h3 style={{ fontSize: 14, fontWeight: 600, marginTop: 20 }}>2. Erhobene Daten</h3>
         <p>
-          Bei der Registrierung erheben wir ausschließlich Ihre <strong>E-Mail-Adresse</strong>.
+          Bei der Registrierung erheben wir ausschließlich Ihren <strong>Benutzernamen</strong>.
           Ihr Passwort wird verschlüsselt gespeichert (bcrypt) und ist für uns nicht einsehbar.
         </p>
 
         <h3 style={{ fontSize: 14, fontWeight: 600, marginTop: 20 }}>3. Zweck der Verarbeitung</h3>
         <p>
           Ihre Daten werden ausschließlich zur <strong>Authentifizierung</strong> und zur Bereitstellung
-          des Zugangs zur ArchVision BIM-Plattform verwendet. Eine Weitergabe an Dritte findet nicht statt.
+          des Zugangs zur BIM Vision Plattform verwendet. Eine Weitergabe an Dritte findet nicht statt.
         </p>
 
         <h3 style={{ fontSize: 14, fontWeight: 600, marginTop: 20 }}>4. Rechtsgrundlage</h3>

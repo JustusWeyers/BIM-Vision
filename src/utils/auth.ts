@@ -12,11 +12,11 @@ export function logout(): void {
   localStorage.removeItem('jwt_token');
 }
 
-export async function login(email: string, password: string): Promise<{ success: boolean; error?: string }> {
+export async function login(username: string, password: string): Promise<{ success: boolean; error?: string }> {
   const res = await fetch(`${BACKEND_URL}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password })
+    body: JSON.stringify({ username, password })
   });
   const data = await res.json();
   if (data.success && data.token) {
@@ -26,11 +26,11 @@ export async function login(email: string, password: string): Promise<{ success:
   return { success: false, error: data.error || 'Login fehlgeschlagen' };
 }
 
-export async function register(email: string, password: string): Promise<{ success: boolean; error?: string }> {
+export async function register(username: string, password: string): Promise<{ success: boolean; error?: string }> {
   const res = await fetch(`${BACKEND_URL}/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password })
+    body: JSON.stringify({ username, password })
   });
   const data = await res.json();
   if (data.success && data.token) {

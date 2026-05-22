@@ -9,7 +9,7 @@ interface Props {
 
 const LoginPage: React.FC<Props> = ({ onLogin }) => {
   const [mode, setMode] = useState<'login' | 'register'>('login');
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [consent, setConsent] = useState(false);
   const [error, setError] = useState('');
@@ -27,8 +27,8 @@ const LoginPage: React.FC<Props> = ({ onLogin }) => {
 
     setLoading(true);
     const result = mode === 'login'
-      ? await login(email, password)
-      : await register(email, password);
+      ? await login(username, password)
+      : await register(username, password);
     setLoading(false);
 
     if (result.success) {
@@ -60,7 +60,7 @@ const LoginPage: React.FC<Props> = ({ onLogin }) => {
               <IconCube width={20} height={20} style={{ color: 'white' }} />
             </div>
             <div>
-              <div style={{ fontWeight: 600, fontSize: 18, color: '#1f2937' }}>ArchVision</div>
+              <div style={{ fontWeight: 600, fontSize: 18, color: '#1f2937' }}>BIM Vision</div>
               <div style={{ fontSize: 12, color: '#6b7280' }}>BIM Rule Validation Platform</div>
             </div>
           </div>
@@ -75,11 +75,11 @@ const LoginPage: React.FC<Props> = ({ onLogin }) => {
           <form onSubmit={handleSubmit}>
             <div style={{ marginBottom: 14 }}>
               <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: '#374151', marginBottom: 4 }}>
-                E-Mail
+                Benutzername
               </label>
               <input
-                type="email" value={email}
-                onChange={e => setEmail(e.target.value)} required
+                type="text" value={username}
+                onChange={e => setUsername(e.target.value)} required
                 style={{
                   width: '100%', padding: '8px 10px', borderRadius: 6,
                   border: '1px solid #d1d5db', fontSize: 14, color: '#1f2937',
@@ -118,7 +118,7 @@ const LoginPage: React.FC<Props> = ({ onLogin }) => {
                   >
                     Datenschutzerklärung
                   </span>{' '}
-                  gelesen und stimme der Verarbeitung meiner E-Mail-Adresse zur Authentifizierung zu.
+                  gelesen und stimme der Verarbeitung meines Benutzernamens zur Authentifizierung zu.
                 </label>
               </div>
             )}
