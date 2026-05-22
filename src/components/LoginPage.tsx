@@ -179,12 +179,12 @@ const LoginPage: React.FC<Props> = ({ onLogin }) => {
             </span>
           </div>
 
-        </div>
+          <div style={{ textAlign: 'center', marginTop: 12, fontSize: 11, color: '#9ca3af' }}>
+            <span onClick={() => setShowImpressum(true)} style={{ cursor: 'pointer', textDecoration: 'underline' }}>Impressum</span>
+            {' · '}
+            <span onClick={() => setShowPrivacy(true)} style={{ cursor: 'pointer', textDecoration: 'underline' }}>Datenschutz</span>
+          </div>
 
-        <div style={{ textAlign: 'center', marginTop: 16, fontSize: 11, color: '#9ca3af' }}>
-          <span onClick={() => setShowImpressum(true)} style={{ cursor: 'pointer', textDecoration: 'underline' }}>Impressum</span>
-          {' · '}
-          <span onClick={() => setShowPrivacy(true)} style={{ cursor: 'pointer', textDecoration: 'underline' }}>Datenschutz</span>
         </div>
       </div>
     </>
