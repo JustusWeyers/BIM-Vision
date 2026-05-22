@@ -244,7 +244,7 @@ const App: React.FC = () => {
                       fontWeight: 600,
                       color: '#1f2937',
                       margin: 0
-                    }}>ArchVision</h1>
+                    }}>BIM Vision</h1>
                     <p style={{ fontSize: 12, color: '#6b7280', margin: 0 }}>BIM Rule Validation
                       Platform</p>
                   </div>
