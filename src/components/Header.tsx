@@ -10,7 +10,7 @@ const Header: FC = () => {
             <IconCube width={20} height={20} style={{ color: 'white' }} />
           </div>
           <div>
-            <h1 style={{ fontSize: 20, fontWeight: 600, color: '#1f2937', margin: 0 }}>BIM Vision</h1>
+            <h1 style={{ fontSize: 20, fontWeight: 600, color: '#1f2937', margin: 0 }}>BIM Rule Check Visualizer</h1>
             <p style={{ fontSize: 12, color: '#6b7280', margin: 0 }}>BIM Rule Validation Platform</p>
           </div>
         </div>

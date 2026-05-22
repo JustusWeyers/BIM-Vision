@@ -64,7 +64,7 @@ const LoginPage: React.FC<Props> = ({ onLogin }) => {
               <IconCube width={20} height={20} style={{ color: 'white' }} />
             </div>
             <div>
-              <div style={{ fontWeight: 600, fontSize: 18, color: '#1f2937' }}>BIM Vision</div>
+              <div style={{ fontWeight: 600, fontSize: 18, color: '#1f2937' }}>BIM Rule Check Visualizer</div>
               <div style={{ fontSize: 12, color: '#6b7280' }}>BIM Rule Validation Platform</div>
             </div>
           </div>
